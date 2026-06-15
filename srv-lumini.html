@@ -1,0 +1,2026 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Central de Monitoramento</title>
+  <style>
+    :root {
+      --bg: #f2f5f9;
+      --card: #ffffff;
+      --ink: #172033;
+      --muted: #68758a;
+      --line: #e2e8f0;
+      --primary: #2158d3;
+      --primary-soft: #eaf0ff;
+      --online: #0d9b63;
+      --online-soft: #e3f8ef;
+      --offline: #d64545;
+      --offline-soft: #fdeaea;
+      --warning: #e08a19;
+      --warning-soft: #fff3dd;
+      --cpu: #2d6cdf;
+      --memory: #7c56d9;
+      --disk: #e68a24;
+      --shadow: 0 10px 30px rgba(35, 54, 86, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    .topbar {
+      color: #fff;
+      background: linear-gradient(120deg, #14264d, #1e4b9a 65%, #2872ce);
+    }
+
+    .topbar-inner,
+    .dashboard {
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      min-height: 116px;
+      padding: 24px 32px;
+    }
+
+    .eyebrow {
+      margin: 0 0 7px;
+      color: #c6d8ff;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(24px, 3vw, 34px);
+      letter-spacing: -0.8px;
+    }
+
+    h2 {
+      font-size: 17px;
+      letter-spacing: -0.2px;
+    }
+
+    .server-subtitle {
+      margin-top: 8px;
+      color: #d9e6ff;
+      font-size: 14px;
+    }
+
+    .status-block {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 13px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+
+    .status-pill::before {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: currentColor;
+      content: "";
+    }
+
+    .status-online {
+      color: var(--online);
+      background: var(--online-soft);
+    }
+
+    .status-offline {
+      color: var(--offline);
+      background: var(--offline-soft);
+    }
+
+    .status-warning {
+      color: var(--warning);
+      background: var(--warning-soft);
+    }
+
+    .refresh-button {
+      padding: 10px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 9px;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.12);
+      cursor: pointer;
+      transition: background 160ms ease;
+    }
+
+    .refresh-button:hover {
+      background: rgba(255, 255, 255, 0.22);
+    }
+
+    .details-button {
+      padding: 8px 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--primary);
+      background: #fff;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 800;
+      transition: border-color 160ms ease, background 160ms ease;
+    }
+
+    .details-button:hover {
+      border-color: #bdd0ff;
+      background: var(--primary-soft);
+    }
+
+    .dashboard {
+      padding: 24px 32px 36px;
+    }
+
+    .toolbar,
+    .card {
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      border-radius: 14px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+      padding: 14px 16px;
+    }
+
+    .filter-group,
+    .filter-actions,
+    .card-title-row,
+    .legend,
+    .service-name {
+      display: flex;
+      align-items: center;
+    }
+
+    .filter-group,
+    .filter-actions {
+      flex-wrap: wrap;
+      gap: 9px;
+    }
+
+    .filter-label,
+    .caption,
+    .muted {
+      color: var(--muted);
+    }
+
+    .filter-label {
+      margin-right: 4px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    input[type="date"] {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: #42516a;
+      background: #fff;
+    }
+
+    input[type="date"] {
+      min-width: 146px;
+      padding: 7px 10px;
+    }
+
+    .overview-grid,
+    .kpi-side-grid,
+    .capacity-grid,
+    .content-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .overview-grid {
+      grid-template-columns: minmax(280px, 0.9fr) minmax(0, 2.1fr);
+      margin-bottom: 16px;
+    }
+
+    .kpi-focus {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 1fr;
+      grid-column: 1 / -1;
+    }
+
+    .hour-card {
+      grid-column: 1 / -1;
+    }
+
+    .kpi-side-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      align-content: start;
+    }
+
+    .content-grid {
+      grid-template-columns: minmax(0, 1.7fr) minmax(300px, 0.8fr);
+      margin-bottom: 16px;
+    }
+
+    .single-column-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .capacity-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: end;
+      min-height: 210px;
+    }
+
+    .card {
+      padding: 18px;
+    }
+
+    .equipment-card {
+      border-color: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      background: linear-gradient(120deg, #17284f, #22559e 68%, #2a74c9);
+      box-shadow: 0 14px 32px rgba(20, 38, 77, 0.18);
+    }
+
+    .equipment-card .caption,
+    .equipment-card .info-label,
+    .equipment-card .info-meta {
+      color: #d9e6ff;
+    }
+
+    .equipment-card .info-item {
+      border-color: rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .equipment-card .info-value {
+      color: #fff;
+    }
+
+    .kpi-card {
+      position: relative;
+      min-height: 126px;
+      overflow: hidden;
+    }
+
+    .kpi-card::after {
+      position: absolute;
+      right: -24px;
+      bottom: -40px;
+      width: 104px;
+      height: 104px;
+      border-radius: 50%;
+      background: var(--primary-soft);
+      content: "";
+    }
+
+    .kpi-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+    }
+
+    .kpi-value {
+      display: block;
+      margin: 12px 0 6px;
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -1px;
+    }
+
+    .caption {
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .card-title-row {
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .chart-container {
+      position: relative;
+      min-height: 242px;
+    }
+
+    #trend-chart {
+      display: block;
+      width: 100%;
+      height: 242px;
+    }
+
+    .chart-empty {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .legend {
+      flex-wrap: wrap;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend-item::before {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      margin-right: 6px;
+      border-radius: 50%;
+      background: var(--legend-color);
+      content: "";
+    }
+
+    .capacity-item + .capacity-item {
+      margin-top: 18px;
+    }
+
+    .capacity-grid .capacity-item + .capacity-item {
+      margin-top: 0;
+    }
+
+    .capacity-grid .capacity-item {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 10px;
+      min-height: 205px;
+    }
+
+    .capacity-label {
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+      justify-content: center;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .capacity-label strong {
+      display: block;
+      margin-top: 4px;
+      color: var(--ink);
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .progress {
+      height: 8px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: #edf1f6;
+    }
+
+    .capacity-grid .progress {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      height: 168px;
+      padding: 8px;
+      border-radius: 12px;
+      background: #f1f5f9;
+    }
+
+    .progress span {
+      display: block;
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      transition: width 350ms ease;
+    }
+
+    .capacity-grid .progress span {
+      width: 100%;
+      max-width: 48px;
+      height: 0;
+      border-radius: 9px 9px 4px 4px;
+      transition: height 350ms ease;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      align-items: stretch;
+      gap: 3px;
+      min-height: 58px;
+      margin: 8px 0 10px;
+      padding: 9px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+
+    .timeline-bar {
+      min-width: 3px;
+      border-radius: 3px;
+      background: var(--online);
+      cursor: help;
+    }
+
+    .timeline-bar.offline {
+      background: var(--offline);
+    }
+
+    .timeline-bar.warning {
+      background: var(--warning);
+    }
+
+    .timeline-bar.no-data {
+      background: #dce3ec;
+    }
+
+    .timeline-empty {
+      align-self: center;
+      grid-column: 1 / -1;
+      width: 100%;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .timeline-scale {
+      display: grid;
+      grid-template-columns: repeat(13, minmax(0, 1fr));
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .timeline-scale span {
+      text-align: center;
+      transform: translateX(-50%);
+    }
+
+    .timeline-scale span:first-child {
+      text-align: left;
+      transform: none;
+    }
+
+    .timeline-scale span:last-child {
+      transform: translateX(-100%);
+    }
+
+    .hour-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .hour-card .hour-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .hour-card .hour-detail {
+      min-height: 126px;
+      padding: 16px;
+    }
+
+    .hour-detail {
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: #f8fafc;
+    }
+
+    .hour-detail-title {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+
+    .hour-detail-value {
+      display: block;
+      margin: 9px 0 11px;
+      font-size: 25px;
+      font-weight: 800;
+      letter-spacing: -0.7px;
+    }
+
+    .hour-detail-meta {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .service-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .services-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .service-summary-item {
+      min-height: 78px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+
+    .service-summary-value {
+      display: block;
+      margin-top: 7px;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .service-details {
+      margin-top: 14px;
+      padding-top: 4px;
+    }
+
+    .service-card .status-online,
+    .service-card .status-offline,
+    .service-card .status-warning {
+      background: transparent;
+    }
+
+    .detail-list,
+    .network-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .detail-row,
+    .network-row {
+      padding: 11px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .detail-row:last-child,
+    .network-row:last-child {
+      border-bottom: 0;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .detail-label,
+    .info-label,
+    .network-traffic {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .detail-value {
+      font-size: 13px;
+      font-weight: 750;
+      text-align: right;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .info-item {
+      min-height: 94px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+
+    .info-value,
+    .network-name {
+      display: block;
+      margin-top: 7px;
+      font-size: 14px;
+      font-weight: 750;
+      line-height: 1.4;
+    }
+
+    .info-meta {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .network-traffic {
+      display: block;
+      margin-top: 5px;
+      line-height: 1.5;
+    }
+
+    .log-row-clickable {
+      cursor: pointer;
+      transition: background 140ms ease;
+    }
+
+    .log-row-clickable:hover,
+    .log-row-clickable.active {
+      background: #f1f6ff;
+    }
+
+    .service-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .service-row:last-child {
+      border-bottom: 0;
+    }
+
+    .service-name {
+      gap: 9px;
+      font-size: 14px;
+      font-weight: 650;
+      min-width: 0;
+    }
+
+    .service-icon {
+      display: grid;
+      flex: 0 0 28px;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      border-radius: 8px;
+      color: var(--primary);
+      background: var(--primary-soft);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .service-text {
+      min-width: 0;
+    }
+
+    .service-title,
+    .service-subtitle {
+      display: block;
+      overflow-wrap: anywhere;
+    }
+
+    .service-subtitle {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.35;
+    }
+
+    .mini-status {
+      padding: 5px 8px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .log-card {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      padding: 11px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .error {
+      margin-bottom: 16px;
+      border-color: #ffd3d3;
+      color: #a92626;
+      background: #fff5f5;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .footer-note {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 11px;
+      text-align: right;
+    }
+
+    @media (max-width: 1050px) {
+      .overview-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .kpi-focus {
+        grid-template-columns: 1fr;
+      }
+
+      .kpi-side-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .topbar-inner,
+      .dashboard {
+        padding-right: 18px;
+        padding-left: 18px;
+      }
+
+      .topbar-inner,
+      .toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .status-block {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .overview-grid,
+      .kpi-side-grid,
+      .capacity-grid,
+      .hour-grid,
+      .services-summary-grid,
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div>
+        <p class="eyebrow">Central de monitoramento</p>
+        <h1 id="servidor">Carregando servidor...</h1>
+        <p class="server-subtitle">
+          Usuário <span id="usuario">-</span> · Última coleta <span id="ultima">-</span>
+        </p>
+      </div>
+      <div class="status-block">
+        <button class="refresh-button" type="button" onclick="carregarStatus()">Atualizar agora</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <div id="erro" class="card error" hidden></div>
+
+    <section class="content-grid single-column-grid">
+      <article class="card equipment-card">
+        <div class="card-title-row">
+          <div>
+            <h2>Informações do equipamento</h2>
+            <p class="caption">Hardware e capacidade informados na última coleta</p>
+          </div>
+        </div>
+        <div id="hardware" class="info-grid">
+          <p class="caption">Carregando...</p>
+        </div>
+      </article>
+    </section>
+
+    <section class="toolbar" aria-label="Filtros do dashboard">
+      <div class="filter-group">
+        <label class="filter-label" for="data-monitoramento-de">De</label>
+        <input id="data-monitoramento-de" type="date">
+        <label class="filter-label" for="data-monitoramento-ate">Até</label>
+        <input id="data-monitoramento-ate" type="date">
+      </div>
+    </section>
+
+    <section class="overview-grid" aria-label="Indicadores gerenciais">
+      <div class="kpi-focus">
+        <div class="kpi-side-grid">
+          <article class="card kpi-card">
+            <span class="kpi-label">Dias monitorados</span>
+            <strong id="kpi-dias-queda" class="kpi-value">-</strong>
+            <span id="kpi-dias-queda-legenda" class="caption">Aguardando coletas</span>
+          </article>
+          <article class="card kpi-card">
+            <span class="kpi-label">Coletas no período</span>
+            <strong id="kpi-incidentes" class="kpi-value">-</strong>
+            <span class="caption">Registros consolidados dos arquivos diários</span>
+          </article>
+          <article class="card kpi-card">
+            <span class="kpi-label">Horário de pico</span>
+            <strong id="kpi-pico" class="kpi-value">-</strong>
+            <span id="kpi-pico-legenda" class="caption">Maior média de uso de CPU</span>
+          </article>
+          <article class="card kpi-card">
+            <span class="kpi-label">Pico de memória RAM</span>
+            <strong id="kpi-pico-memoria" class="kpi-value">-</strong>
+            <span id="kpi-pico-memoria-legenda" class="caption">Maior média de uso de memória</span>
+          </article>
+        </div>
+      </div>
+
+      <article class="card hour-card">
+        <div class="card-title-row">
+          <div>
+            <h2>Detalhamento da última hora</h2>
+            <p id="ultima-hora-legenda" class="caption">Aguardando coletas...</p>
+          </div>
+        </div>
+        <div id="ultima-hora" class="hour-grid"></div>
+      </article>
+    </section>
+
+    <section class="content-grid">
+      <article class="card">
+        <div class="card-title-row">
+          <div>
+            <h2>Tendência de utilização</h2>
+            <p class="caption">Evolução percentual dos recursos no período selecionado</p>
+          </div>
+          <div class="legend" aria-label="Legenda do gráfico">
+            <span class="legend-item" style="--legend-color: var(--cpu)">CPU</span>
+            <span class="legend-item" style="--legend-color: var(--memory)">Memória</span>
+            <span class="legend-item" style="--legend-color: var(--disk)">Disco</span>
+          </div>
+        </div>
+        <div class="chart-container">
+          <svg id="trend-chart" role="img" aria-label="Gráfico de tendência de utilização"></svg>
+          <div id="trend-empty" class="chart-empty" hidden>Não há coletas para a data selecionada.</div>
+        </div>
+      </article>
+
+      <aside class="card">
+        <div class="card-title-row">
+          <div>
+            <h2>Capacidade atual</h2>
+            <p class="caption">Leitura da última verificação</p>
+          </div>
+        </div>
+        <div class="capacity-grid">
+          <div class="capacity-item">
+            <div class="capacity-label"><span>CPU</span><strong id="cpu">-</strong></div>
+            <div class="progress"><span id="cpu-bar" style="background: var(--cpu)"></span></div>
+          </div>
+          <div class="capacity-item">
+            <div class="capacity-label"><span>Memória</span><strong id="memoria">-</strong></div>
+            <div class="progress"><span id="memoria-bar" style="background: var(--memory)"></span></div>
+          </div>
+          <div class="capacity-item">
+            <div class="capacity-label"><span>Disco</span><strong id="disco">-</strong></div>
+            <div class="progress"><span id="disco-bar" style="background: var(--disk)"></span></div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="content-grid">
+      <article class="card">
+        <div class="card-title-row">
+          <div>
+            <h2>Linha do tempo de disponibilidade</h2>
+            <p id="timeline-data" class="caption">Intervalos de 2 horas do dia mais recente</p>
+          </div>
+          <div class="legend">
+            <span class="legend-item" style="--legend-color: var(--online)">Online</span>
+            <span class="legend-item" style="--legend-color: var(--warning)">Atenção</span>
+            <span class="legend-item" style="--legend-color: var(--offline)">Offline</span>
+            <span class="legend-item" style="--legend-color: #dce3ec">Sem coleta</span>
+          </div>
+        </div>
+        <div id="timeline" class="timeline"></div>
+        <div id="timeline-scale" class="timeline-scale"></div>
+      </article>
+
+      <aside class="card">
+        <div class="card-title-row">
+          <div>
+            <h2>Resumo do sistema</h2>
+            <p class="caption">Informações da última coleta</p>
+          </div>
+        </div>
+        <div id="resumo-sistema" class="detail-list">
+          <p class="caption">Carregando...</p>
+        </div>
+      </aside>
+    </section>
+
+    <section class="content-grid single-column-grid">
+      <article class="card service-card">
+        <div class="card-title-row">
+          <div>
+            <h2>Serviços TOTVS e DBACCESS</h2>
+            <p id="servicos-legenda" class="caption">Status dos serviços que começam com .TOTVS e .DBACCESS</p>
+          </div>
+          <button id="servicos-toggle" class="details-button" type="button" aria-expanded="false" onclick="alternarDetalhesServicos()">Ver detalhes</button>
+        </div>
+        <div id="servicos-resumo" class="services-summary-grid"></div>
+        <div id="servicos-detalhes" class="service-details" hidden>
+          <div id="servicos-lista" class="service-list"></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="card log-card">
+      <div class="card-title-row">
+        <div>
+          <h2>Histórico recente</h2>
+          <p class="caption">Coletas do período selecionado</p>
+        </div>
+        <span id="total-coletas" class="caption">0 coletas</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Data e hora</th>
+            <th>CPU</th>
+            <th>Memória</th>
+            <th>Disco</th>
+          </tr>
+        </thead>
+        <tbody id="logs">
+          <tr><td colspan="4" class="muted">Aguardando dados...</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <p class="footer-note">Atualização automática a cada 60 segundos · <span id="fonte-historico">histórico diário consolidado da pasta do Google Drive</span></p>
+  </main>
+
+  <script>
+    const urlStatus = "https://script.google.com/macros/s/AKfycbwdXjp3n5xzEqkWJnmsVDE8AZHUXoqmbVNgyWbnLjB6HvchMx_whrBH3OH-vzAK0fitDQ/exec";
+    const svgNamespace = "http://www.w3.org/2000/svg";
+
+    let timeoutCarregamento;
+    let dataDeSelecionada = "";
+    let dataAteSelecionada = "";
+    let historico = [];
+
+    function texto(id, valor) {
+      document.getElementById(id).textContent = valor ?? "-";
+    }
+
+    function percentual(valor) {
+      const numero = Number.parseFloat(String(valor ?? "").replace(",", ".").replace(/[^\d.-]/g, ""));
+      return Number.isFinite(numero) ? Math.max(0, Math.min(100, numero)) : 0;
+    }
+
+    function campoPowerShell(valor, campo) {
+      if (typeof valor !== "string") return undefined;
+
+      const regex = new RegExp(`(?:^|[;{\\s])${campo}\\s*=\\s*([^;}]+)`, "i");
+      const encontrado = valor.match(regex);
+      return encontrado ? encontrado[1].trim() : undefined;
+    }
+
+    function valorPowerShell(valor) {
+      const texto = String(valor ?? "").trim();
+      const numero = Number(texto.replace(",", "."));
+      return Number.isFinite(numero) && /^-?\d+(?:[,.]\d+)?$/.test(texto) ? numero : texto;
+    }
+
+    function objetoPowerShell(valor) {
+      if (valor && typeof valor === "object") return valor;
+      if (typeof valor !== "string" || !valor.includes("=")) return valor;
+
+      const conteudo = valor.trim().replace(/^@\{/, "").replace(/\}$/, "");
+      const objeto = {};
+
+      conteudo.split(/;\s*/).forEach(parte => {
+        const indice = parte.indexOf("=");
+        if (indice <= 0) return;
+
+        const chave = parte.slice(0, indice).trim();
+        const conteudoValor = parte.slice(indice + 1).trim();
+        if (chave) objeto[chave] = valorPowerShell(conteudoValor);
+      });
+
+      return Object.keys(objeto).length ? objeto : valor;
+    }
+
+    function normalizarRegistroServidor(dados = {}) {
+      if (!dados || typeof dados !== "object" || Array.isArray(dados)) return dados;
+
+      return {
+        ...dados,
+        cpu: objetoPowerShell(dados.cpu),
+        memoria: objetoPowerShell(dados.memoria),
+        disco_c: objetoPowerShell(dados.disco_c),
+        disco: objetoPowerShell(dados.disco),
+        sistema: objetoPowerShell(dados.sistema),
+        rede: objetoPowerShell(dados.rede)
+      };
+    }
+
+    function percentualDaLeitura(valor) {
+      if (valor && typeof valor === "object") {
+        return percentual(valor.uso_percentual ?? valor.percentual ?? valor.uso);
+      }
+
+      const usoPercentual = campoPowerShell(valor, "uso_percentual");
+      if (usoPercentual !== undefined) return percentual(usoPercentual);
+
+      return percentual(valor);
+    }
+
+    function leiturasDaColeta(item = {}) {
+      return {
+        cpu: percentualDaLeitura(item.cpu),
+        memoria: percentualDaLeitura(item.memoria),
+        disco: percentualDaLeitura(item.disco_c ?? item.disco)
+      };
+    }
+
+    function statusNormalizado(status) {
+      const valor = String(status ?? "Indefinido")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+
+      if (valor === "online") return "online";
+      if (valor === "offline") return "offline";
+      return "warning";
+    }
+
+    function dataDoLog(valor) {
+      if (valor instanceof Date) return valor;
+      if (typeof valor === "number") return new Date(valor);
+
+      const partes = String(valor ?? "").match(
+        /^(\d{2})\/(\d{2})\/(\d{4})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/
+      );
+
+      if (partes) {
+        return new Date(
+          Number(partes[3]),
+          Number(partes[2]) - 1,
+          Number(partes[1]),
+          Number(partes[4]),
+          Number(partes[5]),
+          Number(partes[6] || 0)
+        );
+      }
+
+      const data = new Date(valor);
+      return Number.isNaN(data.getTime()) ? null : data;
+    }
+
+    function formatarData(timestamp, curto = false) {
+      const opcoes = curto
+        ? { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }
+        : { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" };
+
+      return new Intl.DateTimeFormat("pt-BR", opcoes).format(new Date(timestamp));
+    }
+
+    function chaveData(timestamp) {
+      const data = new Date(timestamp);
+      const ano = data.getFullYear();
+      const mes = String(data.getMonth() + 1).padStart(2, "0");
+      const dia = String(data.getDate()).padStart(2, "0");
+      return `${ano}-${mes}-${dia}`;
+    }
+
+    function chaveHoje() {
+      return chaveData(Date.now());
+    }
+
+    function dataInicioDaChave(valor) {
+      if (!valor) return null;
+
+      const [ano, mes, dia] = valor.split("-").map(Number);
+      const data = new Date(ano, mes - 1, dia, 0, 0, 0, 0);
+      return Number.isNaN(data.getTime()) ? null : data;
+    }
+
+    function dataFimDaChave(valor) {
+      const data = dataInicioDaChave(valor);
+      if (!data) return null;
+
+      data.setHours(23, 59, 59, 999);
+      return data;
+    }
+
+    function formatarDataSelecionada(valor) {
+      if (!valor) return "-";
+
+      const [ano, mes, dia] = valor.split("-").map(Number);
+      return new Intl.DateTimeFormat("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+      }).format(new Date(ano, mes - 1, dia));
+    }
+
+    function formatarPeriodoSelecionado() {
+      if (!dataDeSelecionada || !dataAteSelecionada) return "período selecionado";
+      if (dataDeSelecionada === dataAteSelecionada) return formatarDataSelecionada(dataDeSelecionada);
+      return `${formatarDataSelecionada(dataDeSelecionada)} até ${formatarDataSelecionada(dataAteSelecionada)}`;
+    }
+
+    function temDataDeColeta(item = {}) {
+      return [
+        "timestamp",
+        "data",
+        "data_hora",
+        "dataHora",
+        "data_coleta",
+        "horario",
+        "hora",
+        "ultima_verificacao"
+      ].some(chave => item[chave] !== undefined && item[chave] !== null && item[chave] !== "");
+    }
+
+    function valorCampo(item, chaves) {
+      if (!item || typeof item !== "object") return "";
+
+      const chave = chaves.find(nome => item[nome] !== undefined && item[nome] !== null);
+      return chave ? String(item[chave]) : "";
+    }
+
+    function nomeArquivoDoItem(item = {}) {
+      return valorCampo(item, [
+        "arquivo",
+        "arquivo_nome",
+        "nome_arquivo",
+        "file",
+        "fileName",
+        "filename",
+        "name",
+        "Name",
+        "path",
+        "caminho"
+      ]);
+    }
+
+    function ehArquivoBackup(nome) {
+      const valor = String(nome ?? "").toLowerCase();
+      return valor.endsWith(".bak") || valor.includes(".bak.") || valor.includes("\\backup\\") || valor.includes("/backup/");
+    }
+
+    function extrairRegistrosHistorico(entrada) {
+      const registros = [];
+      const chavesHistorico = ["historico", "histórico", "logs", "coletas", "horarios", "horários"];
+
+      function visitar(item, origemBackup = false) {
+        if (Array.isArray(item)) {
+          item.forEach(subItem => visitar(subItem, origemBackup));
+          return;
+        }
+
+        if (!item || typeof item !== "object") return;
+
+        const itemBackup = origemBackup || ehArquivoBackup(nomeArquivoDoItem(item));
+        if (itemBackup && temDataDeColeta(item)) return;
+
+        if (temDataDeColeta(item)) {
+          registros.push(item);
+          return;
+        }
+
+        if (Array.isArray(item.value)) {
+          item.value.forEach(subItem => visitar(subItem, itemBackup));
+          return;
+        }
+
+        chavesHistorico.forEach(chave => {
+          if (Array.isArray(item[chave])) item[chave].forEach(subItem => visitar(subItem, itemBackup));
+        });
+      }
+
+      visitar(entrada);
+      return registros;
+    }
+
+    function normalizarColeta(item, dadosBase = {}) {
+      const itemNormalizado = normalizarRegistroServidor(item);
+      const baseNormalizada = normalizarRegistroServidor(dadosBase);
+      const dataBruta = itemNormalizado.data && (itemNormalizado.horario || itemNormalizado.hora)
+        ? `${itemNormalizado.data} ${itemNormalizado.horario ?? itemNormalizado.hora}`
+        : itemNormalizado.timestamp ?? itemNormalizado.data ?? itemNormalizado.data_hora ?? itemNormalizado.dataHora ??
+          itemNormalizado.data_coleta ?? itemNormalizado.horario ?? itemNormalizado.hora ??
+          itemNormalizado.ultima_verificacao ?? baseNormalizada.data_hora ?? baseNormalizada.ultima_verificacao;
+      const data = dataDoLog(dataBruta) ??
+        dataDoLog(baseNormalizada.data_hora ?? baseNormalizada.ultima_verificacao) ??
+        new Date();
+      const leituras = leiturasDaColeta({
+        cpu: itemNormalizado.cpu ?? baseNormalizada.cpu,
+        memoria: itemNormalizado.memoria ?? baseNormalizada.memoria,
+        disco_c: itemNormalizado.disco_c ?? baseNormalizada.disco_c,
+        disco: itemNormalizado.disco ?? baseNormalizada.disco
+      });
+
+      return {
+        timestamp: data.getTime(),
+        cpu: leituras.cpu,
+        memoria: leituras.memoria,
+        disco: leituras.disco,
+        origem: { ...baseNormalizada, ...itemNormalizado }
+      };
+    }
+
+    function chaveUnicaColeta(coleta) {
+      const origem = coleta.origem || {};
+      const servidor = origem.servidor ?? "";
+      const minuto = Math.floor(coleta.timestamp / 60000);
+      return `${servidor}|${minuto}`;
+    }
+
+    function consolidarHistorico(dados) {
+      const chavesHistorico = ["historico", "histórico", "logs", "coletas", "horarios", "horários"];
+      const chaveHistorico = chavesHistorico.find(chave => Array.isArray(dados?.[chave]));
+      const logsRemotos = Array.isArray(dados)
+        ? dados
+        : chaveHistorico ? dados[chaveHistorico] : [];
+      const registrosExtraidos = extrairRegistrosHistorico(logsRemotos);
+      const dadosAtuaisBrutos = Array.isArray(dados)
+        ? registrosExtraidos[registrosExtraidos.length - 1] ?? dados[dados.length - 1]
+        : dados?.servidor || dados?.data_hora || dados?.ultima_verificacao
+          ? dados
+          : registrosExtraidos[registrosExtraidos.length - 1] ?? logsRemotos[logsRemotos.length - 1];
+
+      if (!dadosAtuaisBrutos) throw new Error("O arquivo de status não contém registros.");
+
+      const dadosAtuais = normalizarRegistroServidor(dadosAtuaisBrutos);
+      const registrosRemotos = registrosExtraidos.length ? registrosExtraidos : [dadosAtuais];
+      const mapa = new Map();
+
+      registrosRemotos
+        .map(log => normalizarColeta(log, dadosAtuais))
+        .forEach(coleta => mapa.set(chaveUnicaColeta(coleta), coleta));
+
+      historico = [...mapa.values()]
+        .sort((a, b) => a.timestamp - b.timestamp);
+
+      if (Array.isArray(dados?.arquivos_processados)) {
+        const arquivosValidos = dados.arquivos_processados.filter(arquivo => {
+          const nome = typeof arquivo === "string" ? arquivo : nomeArquivoDoItem(arquivo);
+          return !ehArquivoBackup(nome);
+        });
+        const quantidade = arquivosValidos.length;
+        texto(
+          "fonte-historico",
+          `${quantidade} ${quantidade === 1 ? "arquivo diário consolidado" : "arquivos diários consolidados"} da pasta do Google Drive`
+        );
+      }
+
+      return dadosAtuais;
+    }
+
+    function atualizarCabecalho(dados) {
+      dados = normalizarRegistroServidor(dados);
+      const leituras = leiturasDaColeta(dados);
+
+      texto("servidor", dados.servidor);
+      texto("usuario", dados.usuario_logado ?? dados.ip ?? "Não informado");
+      texto("ultima", dados.ultima_verificacao ?? dados.data_hora);
+      texto("cpu", `${leituras.cpu}%`);
+      texto("memoria", `${leituras.memoria}%`);
+      texto("disco", `${leituras.disco}%`);
+
+      atualizarBarra("cpu-bar", leituras.cpu);
+      atualizarBarra("memoria-bar", leituras.memoria);
+      atualizarBarra("disco-bar", leituras.disco);
+
+      renderizarResumoSistema(dados);
+      renderizarHardware(dados);
+      renderizarServicos(dados);
+    }
+
+    function atualizarBarra(id, valor) {
+      const barra = document.getElementById(id);
+      barra.style.width = "100%";
+      barra.style.height = `${percentual(valor)}%`;
+    }
+
+    function datasDisponiveis() {
+      return [...new Set(historico.map(coleta => chaveData(coleta.timestamp)))].sort();
+    }
+
+    function validarPeriodo(campoAlterado = "") {
+      const hoje = chaveHoje();
+
+      if (!dataDeSelecionada) dataDeSelecionada = hoje;
+      if (!dataAteSelecionada) dataAteSelecionada = hoje;
+
+      if (dataDeSelecionada > hoje) dataDeSelecionada = hoje;
+      if (dataAteSelecionada > hoje) dataAteSelecionada = hoje;
+
+      if (dataAteSelecionada < dataDeSelecionada) {
+        dataAteSelecionada = dataDeSelecionada;
+      }
+    }
+
+    function atualizarPeriodo() {
+      const campoDe = document.getElementById("data-monitoramento-de");
+      const campoAte = document.getElementById("data-monitoramento-ate");
+      const hoje = chaveHoje();
+      const datas = datasDisponiveis();
+
+      validarPeriodo();
+
+      [campoDe, campoAte].forEach(campo => {
+        campo.disabled = false;
+        campo.max = hoje;
+      });
+
+      if (datas.length) {
+        campoDe.min = datas[0];
+        campoAte.min = dataDeSelecionada || datas[0];
+      } else {
+        campoDe.removeAttribute("min");
+        campoAte.removeAttribute("min");
+      }
+
+      campoDe.value = dataDeSelecionada;
+      campoAte.value = dataAteSelecionada;
+      campoAte.min = dataDeSelecionada || campoAte.min;
+
+      campoDe.setCustomValidity(dataDeSelecionada > hoje ? "A data inicial não pode ser futura." : "");
+      campoAte.setCustomValidity(dataAteSelecionada > hoje
+        ? "A data final não pode ser futura."
+        : dataAteSelecionada < dataDeSelecionada
+          ? "A data final não pode ser menor que a data inicial."
+          : ""
+      );
+    }
+
+    function amostrasDoPeriodoSelecionado() {
+      if (!historico.length) return [];
+
+      validarPeriodo();
+
+      const inicio = dataInicioDaChave(dataDeSelecionada)?.getTime();
+      const fim = dataFimDaChave(dataAteSelecionada)?.getTime();
+
+      if (!Number.isFinite(inicio) || !Number.isFinite(fim)) return [];
+
+      return historico.filter(coleta => coleta.timestamp >= inicio && coleta.timestamp <= fim);
+    }
+
+    function renderizarDashboard() {
+      atualizarPeriodo();
+      const amostrasSelecionadas = amostrasDoPeriodoSelecionado();
+
+      if (amostrasSelecionadas.length) {
+        atualizarCabecalho(amostrasSelecionadas[amostrasSelecionadas.length - 1].origem);
+      }
+
+      renderizarIndicadores(amostrasSelecionadas);
+      renderizarGrafico(amostrasSelecionadas);
+      renderizarTimeline(amostrasSelecionadas);
+      renderizarDetalheUltimaHora(amostrasSelecionadas);
+      renderizarLogs(amostrasSelecionadas);
+    }
+
+    function renderizarIndicadores(amostras) {
+      const diasMonitorados = new Set(
+        amostras.map(coleta => new Date(coleta.timestamp).toLocaleDateString("pt-BR"))
+      );
+
+      const picoPorChave = chave => {
+        const mediasPorHora = new Map();
+        amostras.forEach(coleta => {
+          const hora = new Date(coleta.timestamp).getHours();
+          const atual = mediasPorHora.get(hora) || { total: 0, quantidade: 0 };
+          atual.total += coleta[chave];
+          atual.quantidade += 1;
+          mediasPorHora.set(hora, atual);
+        });
+
+        return [...mediasPorHora.entries()]
+        .map(([hora, valores]) => ({ hora, media: valores.total / valores.quantidade }))
+        .sort((a, b) => b.media - a.media)[0];
+      };
+
+      const pico = picoPorChave("cpu");
+      const picoMemoria = picoPorChave("memoria");
+
+      texto("kpi-dias-queda", String(diasMonitorados.size));
+      texto("kpi-dias-queda-legenda", `Período filtrado: ${formatarPeriodoSelecionado()}`);
+      texto("kpi-incidentes", String(amostras.length));
+      texto("kpi-pico", pico ? `${String(pico.hora).padStart(2, "0")}:00` : "-");
+      texto("kpi-pico-legenda", pico ? `Média de CPU de ${pico.media.toFixed(1)}%` : "Aguardando coletas");
+      texto("kpi-pico-memoria", picoMemoria ? `${String(picoMemoria.hora).padStart(2, "0")}:00` : "-");
+      texto("kpi-pico-memoria-legenda", picoMemoria ? `Média de memória de ${picoMemoria.media.toFixed(1)}%` : "Aguardando coletas");
+    }
+
+    function criarSvg(tag, atributos = {}, conteudo = "") {
+      const elemento = document.createElementNS(svgNamespace, tag);
+      Object.entries(atributos).forEach(([nome, valor]) => elemento.setAttribute(nome, valor));
+      if (conteudo) elemento.textContent = conteudo;
+      return elemento;
+    }
+
+    function renderizarGrafico(amostras) {
+      const svg = document.getElementById("trend-chart");
+      const vazio = document.getElementById("trend-empty");
+      const largura = 900;
+      const altura = 242;
+      const margem = { topo: 14, direita: 18, base: 48, esquerda: 38 };
+      const larguraUtil = largura - margem.esquerda - margem.direita;
+      const alturaUtil = altura - margem.topo - margem.base;
+      const series = [
+        { chave: "cpu", cor: "#2d6cdf" },
+        { chave: "memoria", cor: "#7c56d9" },
+        { chave: "disco", cor: "#e68a24" }
+      ];
+
+      svg.replaceChildren();
+      svg.setAttribute("viewBox", `0 0 ${largura} ${altura}`);
+      vazio.hidden = amostras.length > 0;
+      vazio.style.display = amostras.length ? "none" : "grid";
+
+      [0, 25, 50, 75, 100].forEach(valor => {
+        const y = margem.topo + alturaUtil - (valor / 100) * alturaUtil;
+        svg.appendChild(criarSvg("line", {
+          x1: margem.esquerda, x2: largura - margem.direita, y1: y, y2: y,
+          stroke: "#e2e8f0", "stroke-width": "1"
+        }));
+        svg.appendChild(criarSvg("text", {
+          x: margem.esquerda - 8, y: y + 4, "text-anchor": "end",
+          fill: "#8290a5", "font-size": "11"
+        }, `${valor}%`));
+      });
+
+      if (!amostras.length) return;
+
+      const x = indice => margem.esquerda + (
+        amostras.length === 1 ? larguraUtil / 2 : (indice / (amostras.length - 1)) * larguraUtil
+      );
+      const y = valor => margem.topo + alturaUtil - (valor / 100) * alturaUtil;
+
+      amostras.forEach((coleta, indice) => {
+        const posicaoX = x(indice);
+
+        svg.appendChild(criarSvg("line", {
+          x1: posicaoX, x2: posicaoX,
+          y1: margem.topo, y2: margem.topo + alturaUtil,
+          stroke: "#eef2f7", "stroke-width": "1"
+        }));
+
+        const rotulo = criarSvg("text", {
+          x: posicaoX,
+          y: altura - 10,
+          "text-anchor": amostras.length > 8 ? "end" : "middle",
+          fill: "#8290a5",
+          "font-size": "10"
+        }, formatarData(coleta.timestamp, true));
+
+        if (amostras.length > 8) {
+          rotulo.setAttribute("transform", `rotate(-35 ${posicaoX} ${altura - 10})`);
+        }
+
+        svg.appendChild(rotulo);
+      });
+
+      series.forEach(serie => {
+        const pontos = amostras.map((coleta, indice) => `${x(indice)},${y(coleta[serie.chave])}`).join(" ");
+        svg.appendChild(criarSvg("polyline", {
+          points: pontos,
+          fill: "none",
+          stroke: serie.cor,
+          "stroke-width": "3",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        }));
+
+        amostras.forEach((coleta, indice) => {
+          const ponto = criarSvg("circle", {
+            cx: x(indice), cy: y(coleta[serie.chave]), r: "3.5",
+            fill: "#fff", stroke: serie.cor, "stroke-width": "2"
+          });
+          ponto.appendChild(criarSvg("title", {}, `${formatarData(coleta.timestamp)} · ${serie.chave}: ${coleta[serie.chave]}%`));
+          svg.appendChild(ponto);
+        });
+      });
+    }
+
+    function renderizarTimeline(amostras) {
+      const timeline = document.getElementById("timeline");
+      const escala = document.getElementById("timeline-scale");
+      timeline.replaceChildren();
+      escala.replaceChildren();
+      timeline.style.gridTemplateColumns = "";
+      escala.style.gridTemplateColumns = "";
+
+      for (let hora = 0; hora <= 24; hora += 2) {
+        const marcador = document.createElement("span");
+        marcador.textContent = `${String(hora === 24 ? 0 : hora).padStart(2, "0")}h`;
+        escala.appendChild(marcador);
+      }
+
+      if (!amostras.length) {
+        const vazio = document.createElement("div");
+        vazio.className = "timeline-empty";
+        vazio.textContent = "Não há coletas para o filtro selecionado.";
+        timeline.appendChild(vazio);
+        texto("timeline-data", `Intervalos de 2 horas do período ${formatarPeriodoSelecionado()}`);
+        return;
+      }
+
+      const ultimaData = new Date(amostras[amostras.length - 1].timestamp);
+      const inicioDoDia = new Date(
+        ultimaData.getFullYear(),
+        ultimaData.getMonth(),
+        ultimaData.getDate()
+      );
+      const fimDoDia = new Date(inicioDoDia);
+      fimDoDia.setDate(fimDoDia.getDate() + 1);
+      const amostrasDoDia = amostras.filter(coleta => {
+        return coleta.timestamp >= inicioDoDia.getTime() && coleta.timestamp < fimDoDia.getTime();
+      });
+
+      texto("timeline-data", `Intervalos de 2 horas do dia mais recente no período: ${inicioDoDia.toLocaleDateString("pt-BR")}`);
+
+      for (let hora = 0; hora < 24; hora += 2) {
+        const inicio = new Date(inicioDoDia);
+        inicio.setHours(hora, 0, 0, 0);
+        const fim = new Date(inicio);
+        fim.setHours(hora + 2, 0, 0, 0);
+        const coletasDoIntervalo = amostrasDoDia.filter(coleta => {
+          return coleta.timestamp >= inicio.getTime() && coleta.timestamp < fim.getTime();
+        });
+        const barra = document.createElement("span");
+        const status = coletasDoIntervalo.length ? "online" : "no-data";
+
+        barra.className = `timeline-bar ${status}`;
+        barra.title = coletasDoIntervalo.length
+          ? `${String(hora).padStart(2, "0")}h-${String(hora + 2).padStart(2, "0")}h · ${coletasDoIntervalo.length} coleta(s)`
+          : `${String(hora).padStart(2, "0")}h-${String(hora + 2).padStart(2, "0")}h · sem coleta`;
+        timeline.appendChild(barra);
+      }
+    }
+
+    function renderizarDetalheUltimaHora(amostrasSelecionadas) {
+      const painel = document.getElementById("ultima-hora");
+      painel.replaceChildren();
+
+      if (!amostrasSelecionadas.length) {
+        texto("ultima-hora-legenda", `Sem coletas no período ${formatarPeriodoSelecionado()}.`);
+        return;
+      }
+
+      const fim = amostrasSelecionadas[amostrasSelecionadas.length - 1].timestamp;
+      const inicio = fim - 60 * 60 * 1000;
+      const amostras = amostrasSelecionadas.filter(coleta => coleta.timestamp >= inicio && coleta.timestamp <= fim);
+      texto(
+        "ultima-hora-legenda",
+        `${formatarData(inicio)} até ${formatarData(fim)} · ${amostras.length} coleta${amostras.length === 1 ? "" : "s"}`
+      );
+
+      [
+        { titulo: "CPU", chave: "cpu", sufixo: "%" },
+        { titulo: "Memória", chave: "memoria", sufixo: "%" },
+        { titulo: "Disco", chave: "disco", sufixo: "%" }
+      ].forEach(categoria => {
+        const valores = amostras.map(coleta => coleta[categoria.chave]);
+        const media = valores.reduce((total, valor) => total + valor, 0) / valores.length;
+        const atual = valores[valores.length - 1];
+        adicionarDetalheHora(
+          categoria.titulo,
+          `${atual}${categoria.sufixo}`,
+          `Média: ${media.toFixed(1)}${categoria.sufixo}<br>Mín.: ${Math.min(...valores)}${categoria.sufixo} · Máx.: ${Math.max(...valores)}${categoria.sufixo}`
+        );
+      });
+    }
+
+    function adicionarDetalheHora(titulo, valor, detalhe, classe = "") {
+      const painel = document.getElementById("ultima-hora");
+      const item = document.createElement("article");
+      const tituloEl = document.createElement("span");
+      const valorEl = document.createElement("strong");
+      const detalheEl = document.createElement("p");
+
+      item.className = "hour-detail";
+      tituloEl.className = "hour-detail-title";
+      tituloEl.textContent = titulo;
+      valorEl.className = `hour-detail-value ${classe}`;
+      valorEl.textContent = valor;
+      detalheEl.className = "hour-detail-meta";
+      detalheEl.innerHTML = detalhe;
+      item.append(tituloEl, valorEl, detalheEl);
+      painel.appendChild(item);
+    }
+
+    function formatarNumero(valor, casas = 2) {
+      if (valor === null || valor === undefined || valor === "") return "-";
+
+      const numero = Number(valor);
+      return Number.isFinite(numero)
+        ? numero.toLocaleString("pt-BR", { maximumFractionDigits: casas })
+        : "-";
+    }
+
+    function formatarGb(valor) {
+      const numero = formatarNumero(valor);
+      return numero === "-" ? "-" : `${numero} GB`;
+    }
+
+    function adicionarDetalhe(lista, rotulo, valor) {
+      const linha = document.createElement("div");
+      const rotuloEl = document.createElement("span");
+      const valorEl = document.createElement("strong");
+
+      linha.className = "detail-row";
+      rotuloEl.className = "detail-label";
+      rotuloEl.textContent = rotulo;
+      valorEl.className = "detail-value";
+      valorEl.textContent = valor ?? "-";
+      linha.append(rotuloEl, valorEl);
+      lista.appendChild(linha);
+    }
+
+    function renderizarResumoSistema(dados) {
+      const lista = document.getElementById("resumo-sistema");
+      const sistema = dados.sistema || {};
+      lista.replaceChildren();
+
+      adicionarDetalhe(lista, "Usuário conectado", dados.usuario_logado ?? "-");
+      adicionarDetalhe(lista, "Tempo de atividade", sistema.tempo_atividade ?? "-");
+      adicionarDetalhe(lista, "Último boot", sistema.ultimo_boot ?? "-");
+      adicionarDetalhe(lista, "Processos", formatarNumero(sistema.processos, 0));
+      adicionarDetalhe(lista, "Threads", formatarNumero(sistema.threads, 0));
+      adicionarDetalhe(lista, "Identificadores", formatarNumero(sistema.identificadores, 0));
+    }
+
+    function adicionarInfo(container, rotulo, valor, detalhe) {
+      const item = document.createElement("article");
+      const rotuloEl = document.createElement("span");
+      const valorEl = document.createElement("strong");
+
+      item.className = "info-item";
+      rotuloEl.className = "info-label";
+      rotuloEl.textContent = rotulo;
+      valorEl.className = "info-value";
+      valorEl.textContent = valor ?? "-";
+      item.append(rotuloEl, valorEl);
+
+      if (detalhe) {
+        const detalheEl = document.createElement("span");
+        detalheEl.className = "info-meta";
+        detalheEl.textContent = detalhe;
+        item.appendChild(detalheEl);
+      }
+
+      container.appendChild(item);
+    }
+
+    function renderizarHardware(dados) {
+      const container = document.getElementById("hardware");
+      const cpu = dados.cpu || {};
+      const memoria = dados.memoria || {};
+      const disco = dados.disco_c || dados.disco || {};
+      container.replaceChildren();
+
+      adicionarInfo(
+        container,
+        "Processador",
+        cpu.nome ?? "-",
+        `${formatarNumero(cpu.nucleos, 0)} núcleo(s) · ${formatarNumero(cpu.processadores_logicos, 0)} processador(es) lógico(s) · ${formatarNumero(cpu.velocidade_base_ghz)} GHz`
+      );
+      adicionarInfo(
+        container,
+        "Memória RAM",
+        `${formatarGb(memoria.usada_gb)} em uso`,
+        `${formatarGb(memoria.total_gb)} total · ${formatarGb(memoria.livre_gb)} livre`
+      );
+      adicionarInfo(
+        container,
+        `Disco ${disco.unidade ?? "C:"}`,
+        `${formatarGb(disco.usado_gb)} em uso`,
+        `${formatarGb(disco.total_gb)} total · ${formatarGb(disco.livre_gb)} livre · ${disco.sistema_arquivo ?? "-"}`
+      );
+    }
+
+    function normalizarServicos(dados) {
+      const servicos = Array.isArray(dados?.servicos)
+        ? dados.servicos
+        : Array.isArray(dados?.["serviços"])
+          ? dados["serviços"]
+          : [];
+
+      return servicos
+        .map(servico => ({
+          nome: String(servico.nome_servico ?? servico.nome ?? servico.name ?? servico.Name ?? "-"),
+          exibicao: String(servico.nome_exibicao ?? servico.display_name ?? servico.DisplayName ?? ""),
+          status: String(servico.status ?? servico.Status ?? servico.status_codigo ?? "-"),
+          statusCodigo: String(servico.status_codigo ?? servico.StatusCode ?? servico.Status ?? servico.status ?? "")
+        }))
+        .filter(servico => servico.nome && servico.nome !== "-")
+        .sort((a, b) => {
+          const aParado = classeStatusServico(a) === "status-offline";
+          const bParado = classeStatusServico(b) === "status-offline";
+
+          if (aParado !== bParado) return aParado ? -1 : 1;
+
+          return (a.exibicao || a.nome).localeCompare(b.exibicao || b.nome, "pt-BR");
+        });
+    }
+
+    function classeStatusServico(servico) {
+      const valor = String(servico.statusCodigo || servico.status)
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+
+      if (["running", "rodando", "run"].includes(valor)) return "status-online";
+      if (["stopped", "parado", "stop"].includes(valor)) return "status-offline";
+      return "status-warning";
+    }
+
+    function atualizarBotaoServicos() {
+      const detalhes = document.getElementById("servicos-detalhes");
+      const botao = document.getElementById("servicos-toggle");
+      const aberto = !detalhes.hidden;
+
+      botao.textContent = aberto ? "Ocultar detalhes" : "Ver detalhes";
+      botao.setAttribute("aria-expanded", String(aberto));
+    }
+
+    function alternarDetalhesServicos() {
+      const detalhes = document.getElementById("servicos-detalhes");
+      detalhes.hidden = !detalhes.hidden;
+      atualizarBotaoServicos();
+    }
+
+    function adicionarResumoServico(container, rotulo, valor, classe = "") {
+      const item = document.createElement("article");
+      const rotuloEl = document.createElement("span");
+      const valorEl = document.createElement("strong");
+
+      item.className = "service-summary-item";
+      rotuloEl.className = "info-label";
+      rotuloEl.textContent = rotulo;
+      valorEl.className = `service-summary-value ${classe}`;
+      valorEl.textContent = valor;
+      item.append(rotuloEl, valorEl);
+      container.appendChild(item);
+    }
+
+    function renderizarServicos(dados) {
+      const resumo = document.getElementById("servicos-resumo");
+      const lista = document.getElementById("servicos-lista");
+      const detalhes = document.getElementById("servicos-detalhes");
+      const botao = document.getElementById("servicos-toggle");
+      const servicos = normalizarServicos(dados);
+      const rodando = servicos.filter(servico => classeStatusServico(servico) === "status-online").length;
+      const parado = servicos.filter(servico => classeStatusServico(servico) === "status-offline").length;
+
+      resumo.replaceChildren();
+      lista.replaceChildren();
+      texto("servicos-legenda", servicos.length
+        ? `${servicos.length} serviço${servicos.length === 1 ? "" : "s"} encontrado${servicos.length === 1 ? "" : "s"} na última coleta`
+        : "Nenhum serviço .TOTVS ou .DBACCESS encontrado na última coleta"
+      );
+
+      adicionarResumoServico(resumo, "Total monitorado", String(servicos.length));
+      adicionarResumoServico(resumo, "Rodando", String(rodando), "status-online");
+      adicionarResumoServico(resumo, "Parado", String(parado), "status-offline");
+
+      if (!servicos.length) {
+        const vazio = document.createElement("p");
+        vazio.className = "caption";
+        vazio.textContent = "Sem dados de serviços para exibir.";
+        lista.appendChild(vazio);
+        detalhes.hidden = true;
+        botao.disabled = true;
+        atualizarBotaoServicos();
+        return;
+      }
+
+      botao.disabled = false;
+      servicos.forEach(servico => {
+        const linha = document.createElement("div");
+        const nome = document.createElement("div");
+        const icone = document.createElement("span");
+        const textoServico = document.createElement("span");
+        const titulo = document.createElement("span");
+        const subtitulo = document.createElement("span");
+        const status = document.createElement("span");
+
+        linha.className = "service-row";
+        nome.className = "service-name";
+        icone.className = "service-icon";
+        icone.textContent = `${servico.nome} ${servico.exibicao}`.toUpperCase().includes("DBACCESS") ? "DB" : "TV";
+        textoServico.className = "service-text";
+        titulo.className = "service-title";
+        titulo.textContent = servico.nome;
+        subtitulo.className = "service-subtitle";
+        subtitulo.textContent = servico.exibicao && servico.exibicao !== servico.nome ? servico.exibicao : "Nome de exibição não informado";
+        status.className = `mini-status ${classeStatusServico(servico)}`;
+        status.textContent = servico.status;
+
+        textoServico.append(titulo, subtitulo);
+        nome.append(icone, textoServico);
+        linha.append(nome, status);
+        lista.appendChild(linha);
+      });
+
+      atualizarBotaoServicos();
+    }
+
+    function renderizarLogs(amostras) {
+      const tbody = document.getElementById("logs");
+      tbody.replaceChildren();
+      texto("total-coletas", `${amostras.length} coleta${amostras.length === 1 ? "" : "s"}`);
+
+      if (!amostras.length) {
+        const linha = document.createElement("tr");
+        const coluna = document.createElement("td");
+        coluna.colSpan = 4;
+        coluna.className = "muted";
+        coluna.textContent = "Não há coletas para o período selecionado.";
+        linha.appendChild(coluna);
+        tbody.appendChild(linha);
+        return;
+      }
+
+      [...amostras].reverse().forEach(coleta => {
+        const linha = document.createElement("tr");
+        const valores = [
+          formatarData(coleta.timestamp),
+          `${coleta.cpu}%`,
+          `${coleta.memoria}%`,
+          `${coleta.disco}%`
+        ];
+
+        linha.className = "log-row-clickable";
+        linha.dataset.timestamp = String(coleta.timestamp);
+        linha.title = "Clique para carregar esta coleta nos cards superiores.";
+        linha.addEventListener("click", () => selecionarColeta(coleta));
+
+        valores.forEach(valor => {
+          const coluna = document.createElement("td");
+          coluna.textContent = valor;
+          linha.appendChild(coluna);
+        });
+
+        tbody.appendChild(linha);
+      });
+    }
+
+    function selecionarColeta(coleta) {
+      const dados = coleta.origem || coleta;
+      atualizarCabecalho(dados);
+      document.querySelectorAll(".log-row-clickable.active").forEach(linha => {
+        linha.classList.remove("active");
+      });
+
+      const linha = [...document.querySelectorAll(".log-row-clickable")]
+        .find(item => item.dataset.timestamp === String(coleta.timestamp));
+      linha?.classList.add("active");
+    }
+
+    function exibirErro(mensagem) {
+      const erroEl = document.getElementById("erro");
+      erroEl.textContent = mensagem;
+      erroEl.hidden = false;
+    }
+
+    function ocultarErro() {
+      document.getElementById("erro").hidden = true;
+    }
+
+    function montarUrlStatus(parametros = {}) {
+      const url = new URL(urlStatus);
+      Object.entries(parametros).forEach(([chave, valor]) => {
+        url.searchParams.set(chave, valor);
+      });
+      url.searchParams.set("_", Date.now());
+      return url.toString();
+    }
+
+    function receberStatus(dados) {
+      try {
+        clearTimeout(timeoutCarregamento);
+        document.getElementById("jsonp-status")?.remove();
+        const dadosAtuais = consolidarHistorico(dados);
+        atualizarCabecalho(dadosAtuais);
+        renderizarDashboard();
+
+        if (Array.isArray(dados?.erros) && dados.erros.length) {
+          exibirErro(`${dados.erros.length} arquivo(s) diário(s) da pasta não puderam ser lidos.`);
+        } else {
+          ocultarErro();
+        }
+      } catch (erro) {
+        exibirErro(`Erro ao processar status do servidor: ${erro.message}`);
+      }
+    }
+
+    function carregarStatus() {
+      clearTimeout(timeoutCarregamento);
+      document.getElementById("jsonp-status")?.remove();
+
+      const script = document.createElement("script");
+      script.id = "jsonp-status";
+      script.src = montarUrlStatus({ callback: "receberStatus" });
+      script.onerror = () => {
+        clearTimeout(timeoutCarregamento);
+        exibirErro(
+          `Não foi possível acessar o Apps Script. Abra ${urlStatus} no navegador; se aparecer login ou erro, reimplante como app da web com acesso para "Qualquer pessoa".`
+        );
+      };
+
+      timeoutCarregamento = setTimeout(() => {
+        script.remove();
+        exibirErro(
+          `Tempo limite excedido ao consultar o Apps Script. Abra ${urlStatus} no navegador e confirme se ele retorna o JSON.`
+        );
+      }, 10000);
+
+      document.head.appendChild(script);
+    }
+
+    document.getElementById("data-monitoramento-de").addEventListener("change", evento => {
+      dataDeSelecionada = evento.target.value;
+      validarPeriodo("de");
+      renderizarDashboard();
+    });
+
+    document.getElementById("data-monitoramento-ate").addEventListener("change", evento => {
+      dataAteSelecionada = evento.target.value;
+      validarPeriodo("ate");
+      renderizarDashboard();
+    });
+
+    renderizarDashboard();
+    carregarStatus();
+    setInterval(carregarStatus, 60000);
+  </script>
+</body>
+</html>

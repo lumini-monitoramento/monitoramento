@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fábrica | Monitoramento</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --surface: #ffffff;
+      --surface-strong: #f8fafc;
+      --ink: #152033;
+      --muted: #65728a;
+      --line: #dfe7f1;
+      --primary: #1957c2;
+      --primary-soft: #e8f0ff;
+      --success: #07835c;
+      --success-soft: #e3f7ef;
+      --warning: #c87509;
+      --warning-soft: #fff2d9;
+      --danger: #c83f4c;
+      --danger-soft: #fde8eb;
+      --cyan: #1282a2;
+      --magenta: #9a4d9e;
+      --shadow: 0 14px 34px rgba(30, 45, 75, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    .topbar {
+      color: #fff;
+      background:
+        linear-gradient(125deg, rgba(18, 35, 72, 0.98), rgba(28, 78, 150, 0.96) 56%, rgba(18, 130, 162, 0.96)),
+        radial-gradient(circle at 84% 18%, rgba(255, 255, 255, 0.22), transparent 34%);
+    }
+
+    .topbar-inner,
+    .dashboard {
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 22px;
+      min-height: 128px;
+      padding: 24px 32px;
+    }
+
+    .eyebrow {
+      margin-bottom: 8px;
+      color: #c9dcff;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-size: clamp(25px, 3vw, 38px);
+      font-weight: 850;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      color: #dce9ff;
+      font-size: 14px;
+    }
+
+    .top-actions,
+    .toolbar,
+    .card-title-row,
+    .metric-row,
+    .legend,
+    .status-line,
+    .table-name {
+      display: flex;
+      align-items: center;
+    }
+
+    .top-actions {
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .date-control,
+    .action-button {
+      height: 40px;
+      border-radius: 8px;
+    }
+
+    .date-control {
+      min-width: 156px;
+      padding: 0 10px;
+      border: 1px solid rgba(255, 255, 255, 0.26);
+      color: #fff;
+      background: rgba(255, 255, 255, 0.12);
+      color-scheme: dark;
+    }
+
+    .calendar-panel {
+      width: 280px;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .calendar-header,
+    .calendar-grid {
+      display: grid;
+      align-items: center;
+    }
+
+    .calendar-header {
+      grid-template-columns: 34px 1fr 34px;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .calendar-title {
+      font-size: 13px;
+      font-weight: 800;
+      text-align: center;
+      text-transform: capitalize;
+    }
+
+    .calendar-nav,
+    .calendar-day {
+      border: 0;
+      border-radius: 7px;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.14);
+      cursor: pointer;
+    }
+
+    .calendar-nav {
+      width: 34px;
+      height: 32px;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .calendar-grid {
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+    }
+
+    .calendar-weekday {
+      color: #c9dcff;
+      font-size: 10px;
+      font-weight: 800;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .calendar-day {
+      height: 30px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .calendar-day:hover:not(:disabled),
+    .calendar-day.active {
+      background: #fff;
+      color: var(--primary);
+    }
+
+    .calendar-day:disabled {
+      color: rgba(255, 255, 255, 0.34);
+      background: rgba(255, 255, 255, 0.06);
+      cursor: not-allowed;
+    }
+
+    .calendar-empty {
+      visibility: hidden;
+    }
+
+    .action-button {
+      padding: 0 13px;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      color: #fff;
+      background: rgba(255, 255, 255, 0.13);
+      cursor: pointer;
+      font-weight: 750;
+      transition: background 160ms ease, transform 160ms ease;
+    }
+
+    .action-button:hover {
+      background: rgba(255, 255, 255, 0.22);
+    }
+
+    .action-button:active {
+      transform: translateY(1px);
+    }
+
+    .dashboard {
+      padding: 24px 32px 34px;
+    }
+
+    .toolbar,
+    .card {
+      border: 1px solid rgba(223, 231, 241, 0.94);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .toolbar {
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+      padding: 14px 16px;
+    }
+
+    .toolbar .caption {
+      max-width: 780px;
+    }
+
+    .status-pill,
+    .mini-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .status-pill {
+      padding: 8px 11px;
+    }
+
+    .mini-status {
+      padding: 5px 8px;
+    }
+
+    .status-pill::before,
+    .mini-status::before {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      content: "";
+    }
+
+    .status-ok {
+      color: var(--success);
+      background: var(--success-soft);
+    }
+
+    .status-atencao {
+      color: var(--warning);
+      background: var(--warning-soft);
+    }
+
+    .status-critico,
+    .status-erro,
+    .status-offline {
+      color: var(--danger);
+      background: var(--danger-soft);
+    }
+
+    .status-normal {
+      color: var(--primary);
+      background: var(--primary-soft);
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .kpi-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      margin-bottom: 16px;
+    }
+
+    .content-grid {
+      grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.75fr);
+      margin-bottom: 16px;
+    }
+
+    .hero-grid {
+      grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.7fr);
+      align-items: stretch;
+      margin-bottom: 16px;
+    }
+
+    .split-grid {
+      grid-template-columns: 1fr;
+      margin-bottom: 16px;
+    }
+
+    .card {
+      padding: 18px;
+      overflow: hidden;
+    }
+
+    .hero-card {
+      min-height: 218px;
+      color: #fff;
+      background:
+        linear-gradient(120deg, rgba(19, 33, 62, 0.98), rgba(29, 84, 154, 0.96) 62%, rgba(18, 130, 162, 0.93)),
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.08) 0, rgba(255,255,255,0.08) 1px, transparent 1px, transparent 46px);
+      box-shadow: 0 18px 36px rgba(24, 56, 110, 0.2);
+    }
+
+    .hero-card .caption,
+    .hero-card .metric-label {
+      color: #d7e7ff;
+    }
+
+    .hero-card .status-pill {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .hero-layout {
+      display: grid;
+      grid-template-columns: minmax(250px, 0.9fr) minmax(320px, 1.1fr);
+      gap: 18px;
+      min-height: 174px;
+    }
+
+    .hero-link-info {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .hero-link-info-item {
+      min-width: 0;
+    }
+
+    .hero-link-info-value {
+      display: block;
+      margin-top: 6px;
+      overflow: hidden;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 850;
+      letter-spacing: 0;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .score-wrap {
+      display: grid;
+      align-content: center;
+      gap: 16px;
+    }
+
+    .score-value {
+      display: block;
+      font-size: clamp(46px, 7vw, 82px);
+      font-weight: 900;
+      letter-spacing: 0;
+      line-height: 0.95;
+    }
+
+    .score-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .hero-metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      align-content: center;
+    }
+
+    .hero-metric {
+      min-height: 76px;
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .metric-label,
+    .kpi-label,
+    .info-label,
+    .caption,
+    .muted {
+      color: var(--muted);
+    }
+
+    .metric-label,
+    .kpi-label,
+    .info-label {
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      display: block;
+      margin-top: 8px;
+      font-size: 24px;
+      font-weight: 850;
+      letter-spacing: 0;
+    }
+
+    .kpi-card {
+      min-height: 122px;
+    }
+
+    .kpi-value {
+      display: block;
+      margin: 12px 0 7px;
+      font-size: 31px;
+      font-weight: 850;
+      letter-spacing: 0;
+    }
+
+    .caption {
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .card-title-row {
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .chart-container {
+      position: relative;
+      min-height: 282px;
+    }
+
+    #trend-chart,
+    #distribution-chart {
+      display: block;
+      width: 100%;
+      height: 282px;
+    }
+
+    .chart-empty {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .legend {
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 12px;
+    }
+
+    .legend-item::before {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      margin-right: 6px;
+      border-radius: 50%;
+      background: var(--legend-color);
+      content: "";
+    }
+
+    .detail-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .quality-list {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      align-items: end;
+      gap: 12px;
+      min-height: 244px;
+    }
+
+    .quality-item {
+      display: grid;
+      grid-template-rows: 1fr auto auto;
+      justify-items: center;
+      gap: 8px;
+      min-height: 214px;
+      text-align: center;
+    }
+
+    .quality-item .detail-value,
+    .quality-item .info-label {
+      width: 100%;
+      text-align: center;
+    }
+
+    .bar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      width: 100%;
+      height: 154px;
+      padding: 8px;
+      overflow: hidden;
+      border-radius: 8px;
+      background: #eef3f8;
+    }
+
+    .bar span {
+      display: block;
+      width: 40px;
+      height: 0;
+      border-radius: 7px 7px 3px 3px;
+      background: var(--primary);
+      transition: height 280ms ease;
+    }
+
+    .bar.warning span {
+      background: var(--warning);
+    }
+
+    .bar.danger span {
+      background: var(--danger);
+    }
+
+    .bar.success span {
+      background: var(--success);
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .detail-row:last-child {
+      border-bottom: 0;
+    }
+
+    .detail-value {
+      font-size: 13px;
+      font-weight: 750;
+      text-align: right;
+    }
+
+    .table-name strong {
+      display: block;
+      overflow-wrap: anywhere;
+      font-size: 13px;
+    }
+
+    .table-name span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .tables-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      padding: 11px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .error {
+      margin-bottom: 16px;
+      border-color: #ffd6db;
+      color: #9f2634;
+      background: #fff4f6;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .footer-note {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 11px;
+      text-align: right;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    @media (max-width: 1180px) {
+      .kpi-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .content-grid,
+      .hero-grid,
+      .tables-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .topbar-inner,
+      .hero-layout,
+      .toolbar {
+        align-items: flex-start;
+        grid-template-columns: 1fr;
+        flex-direction: column;
+      }
+
+      .top-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .kpi-grid,
+      .split-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .topbar-inner,
+      .dashboard {
+        padding-right: 18px;
+        padding-left: 18px;
+      }
+
+      .date-control,
+      .action-button,
+      .calendar-panel {
+        width: 100%;
+      }
+
+      .kpi-grid,
+      .split-grid,
+      .hero-metrics,
+      .hero-link-info {
+        grid-template-columns: 1fr;
+      }
+
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div>
+        <p class="eyebrow">Central de monitoramento</p>
+        <h1 id="titulo-local">Fábrica</h1>
+        <p class="subtitle">Última coleta <span id="ultima-coleta">-</span></p>
+      </div>
+      <div class="top-actions">
+        <div class="calendar-panel" aria-label="Calendário de arquivos disponíveis">
+          <div class="calendar-header">
+            <button id="mes-anterior" class="calendar-nav" type="button" aria-label="Mês anterior">‹</button>
+            <strong id="calendario-titulo" class="calendar-title">-</strong>
+            <button id="mes-proximo" class="calendar-nav" type="button" aria-label="Próximo mês">›</button>
+          </div>
+          <div id="calendario-dias" class="calendar-grid"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <div id="erro" class="card error" hidden></div>
+
+    <section class="grid hero-grid">
+      <article class="card hero-card">
+        <div class="hero-layout">
+          <div class="score-wrap">
+            <div>
+              <span class="metric-label">SLA do link</span>
+              <strong id="score-sla" class="score-value">-</strong>
+            </div>
+            <div class="score-meta">
+              <span id="classificacao-link" class="status-pill status-normal">-</span>
+            </div>
+          </div>
+          <div class="hero-metrics">
+            <article class="hero-metric">
+              <span class="metric-label">Download</span>
+              <strong id="download-atual" class="metric-value">-</strong>
+            </article>
+            <article class="hero-metric">
+              <span class="metric-label">Upload</span>
+              <strong id="upload-atual" class="metric-value">-</strong>
+            </article>
+            <article class="hero-metric">
+              <span class="metric-label">Ping</span>
+              <strong id="ping-atual" class="metric-value">-</strong>
+            </article>
+            <article class="hero-metric">
+              <span class="metric-label">Jitter</span>
+              <strong id="jitter-atual" class="metric-value">-</strong>
+            </article>
+          </div>
+        </div>
+        <div class="hero-link-info">
+          <div class="hero-link-info-item">
+            <span class="metric-label">IP público</span>
+            <strong id="ip-publico" class="hero-link-info-value">-</strong>
+          </div>
+          <div class="hero-link-info-item">
+            <span class="metric-label">Provedor</span>
+            <strong id="provedor-link" class="hero-link-info-value">-</strong>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-title-row">
+          <div>
+            <h2>Rede e conexão</h2>
+            <p class="caption">Dados da última coleta</p>
+          </div>
+        </div>
+        <div id="detalhes-link" class="detail-list"></div>
+      </article>
+    </section>
+
+    <section class="grid kpi-grid" aria-label="Indicadores gerenciais">
+      <article class="card kpi-card">
+        <span class="kpi-label">Alertas</span>
+        <strong id="kpi-alertas" class="kpi-value">-</strong>
+        <span id="kpi-alertas-legenda" class="caption">-</span>
+      </article>
+      <article class="card kpi-card">
+        <span class="kpi-label">Access points</span>
+        <strong id="kpi-aps" class="kpi-value">-</strong>
+        <span id="kpi-aps-legenda" class="caption">-</span>
+      </article>
+      <article class="card kpi-card">
+        <span class="kpi-label">Clientes Wi-Fi</span>
+        <strong id="kpi-clientes" class="kpi-value">-</strong>
+        <span class="caption">Conectados na última coleta</span>
+      </article>
+      <article class="card kpi-card">
+        <span class="kpi-label">Impressoras</span>
+        <strong id="kpi-impressoras" class="kpi-value">-</strong>
+        <span id="kpi-impressoras-legenda" class="caption">-</span>
+      </article>
+      <article class="card kpi-card">
+        <span class="kpi-label">Coletas do dia</span>
+        <strong id="kpi-coletas" class="kpi-value">-</strong>
+        <span id="kpi-coletas-legenda" class="caption">-</span>
+      </article>
+    </section>
+
+    <section class="grid content-grid">
+      <article class="card">
+        <div class="card-title-row">
+          <div>
+            <h2>Tendência do link</h2>
+            <p class="caption">Download, upload e score SLA ao longo das coletas do dia</p>
+          </div>
+          <div class="legend" aria-label="Legenda do gráfico">
+            <span class="legend-item" style="--legend-color: var(--primary)">Download</span>
+            <span class="legend-item" style="--legend-color: var(--cyan)">Upload</span>
+            <span class="legend-item" style="--legend-color: var(--magenta)">SLA</span>
+          </div>
+        </div>
+        <div class="chart-container">
+          <svg id="trend-chart" role="img" aria-label="Gráfico de tendência do link"></svg>
+          <div id="trend-empty" class="chart-empty" hidden>Sem coletas para desenhar o gráfico.</div>
+        </div>
+      </article>
+
+      <aside class="card">
+        <div class="card-title-row">
+          <div>
+            <h2>Qualidade atual</h2>
+            <p class="caption">Percentuais usados no cálculo de SLA</p>
+          </div>
+        </div>
+        <div id="qualidade-lista" class="quality-list"></div>
+      </aside>
+    </section>
+
+    <section class="grid tables-grid">
+      <article class="card">
+        <div class="card-title-row">
+          <div>
+            <h2>Access points</h2>
+            <p id="aps-legenda" class="caption">Status informado pela controladora Unifi</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>AP</th>
+                <th>Qtd de clientes</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-aps"></tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-title-row">
+          <div>
+            <h2>Impressoras</h2>
+            <p id="impressoras-legenda" class="caption">Status do servidor de impressão</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Impressora</th>
+                <th>Status</th>
+                <th>Toner</th>
+                <th>Fila</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-impressoras"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <p class="footer-note">Atualização automática a cada 60 segundos · <span id="fonte-drive">histórico diário da pasta Google Drive</span></p>
+  </main>
+
+  <script>
+    const urlStatus = "https://script.google.com/macros/s/AKfycbxWqabiS9lp-opidN_p-ZsCHKkvXydwl_AupV_S8FiP0Dy1ES52FhwMh3HPE9NQ5b917g/exec";
+    const driveFolderId = "1ym6SJWSRH2b-Mmvrek4FEGa0PIPB00PD";
+    const jsonPrefix = "historico_loja_fabrica";
+    const svgNamespace = "http://www.w3.org/2000/svg";
+    const calendarioTitulo = document.getElementById("calendario-titulo");
+    const calendarioDias = document.getElementById("calendario-dias");
+    const btnMesAnterior = document.getElementById("mes-anterior");
+    const btnMesProximo = document.getElementById("mes-proximo");
+    let datasDisponiveis = [];
+    let dataSelecionada = "";
+    let mesVisivel = new Date();
+    let timeoutCarregamento;
+
+    function texto(id, valor) {
+      document.getElementById(id).textContent = valor ?? "-";
+    }
+
+    function numero(valor, casas = 1) {
+      const n = Number(valor);
+      if (!Number.isFinite(n)) return "-";
+      return n.toLocaleString("pt-BR", { maximumFractionDigits: casas });
+    }
+
+    function inteiro(valor) {
+      const n = Number(valor);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function porcentagem(valor, casas = 1) {
+      const n = Number(valor);
+      return Number.isFinite(n) ? `${numero(n, casas)}%` : "-";
+    }
+
+    function mbps(valor) {
+      return `${numero(valor, 2)} Mbps`;
+    }
+
+    function ms(valor) {
+      return `${numero(valor, 2)} ms`;
+    }
+
+    function hojeISO() {
+      return new Date().toLocaleDateString("sv-SE");
+    }
+
+    function dataParaArquivo(data) {
+      return `historico_loja_fabrica_${data}.json`;
+    }
+
+    function dataDoNomeArquivo(nome) {
+      const encontrado = String(nome ?? "").match(/^historico_loja_fabrica_(\d{4}-\d{2}-\d{2})\.json$/);
+      return encontrado ? encontrado[1] : null;
+    }
+
+    function dataISO(ano, mesZero, dia) {
+      return `${ano}-${String(mesZero + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+    }
+
+    function dataLocalDeISO(data) {
+      const [ano, mes, dia] = data.split("-").map(Number);
+      return new Date(ano, mes - 1, dia);
+    }
+
+    function renderizarCalendario() {
+      calendarioDias.replaceChildren();
+      const ano = mesVisivel.getFullYear();
+      const mes = mesVisivel.getMonth();
+      const primeiroDiaSemana = new Date(ano, mes, 1).getDay();
+      const totalDias = new Date(ano, mes + 1, 0).getDate();
+      const disponiveis = new Set(datasDisponiveis);
+
+      calendarioTitulo.textContent = new Intl.DateTimeFormat("pt-BR", {
+        month: "long",
+        year: "numeric"
+      }).format(mesVisivel);
+
+      ["D", "S", "T", "Q", "Q", "S", "S"].forEach(rotulo => {
+        const el = document.createElement("span");
+        el.className = "calendar-weekday";
+        el.textContent = rotulo;
+        calendarioDias.appendChild(el);
+      });
+
+      for (let i = 0; i < primeiroDiaSemana; i += 1) {
+        const vazio = document.createElement("span");
+        vazio.className = "calendar-empty";
+        calendarioDias.appendChild(vazio);
+      }
+
+      for (let dia = 1; dia <= totalDias; dia += 1) {
+        const iso = dataISO(ano, mes, dia);
+        const botao = document.createElement("button");
+        botao.type = "button";
+        botao.className = `calendar-day${iso === dataSelecionada ? " active" : ""}`;
+        botao.textContent = dia;
+        botao.disabled = !disponiveis.has(iso);
+        botao.addEventListener("click", () => {
+          dataSelecionada = iso;
+          renderizarCalendario();
+          carregarPorData();
+        });
+        calendarioDias.appendChild(botao);
+      }
+    }
+
+    function popularDatasDisponiveis(arquivos) {
+      datasDisponiveis = [...new Set((arquivos || []).map(dataDoNomeArquivo).filter(Boolean))]
+        .sort((a, b) => b.localeCompare(a));
+      const preferida = new URLSearchParams(location.search).get("data");
+
+      if (!datasDisponiveis.length) {
+        calendarioTitulo.textContent = "Sem datas disponíveis";
+        calendarioDias.replaceChildren();
+        return "";
+      }
+
+      dataSelecionada = datasDisponiveis.includes(preferida)
+        ? preferida
+        : datasDisponiveis.includes(dataSelecionada)
+          ? dataSelecionada
+          : datasDisponiveis[0];
+      mesVisivel = dataLocalDeISO(dataSelecionada);
+      renderizarCalendario();
+
+      return dataSelecionada;
+    }
+
+    function dataDaColeta(registro) {
+      if (Number.isFinite(Number(registro?.timestamp))) return new Date(Number(registro.timestamp));
+      const partes = String(registro?.data_hora ?? "").match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})(?::(\d{2}))?/);
+      if (!partes) return new Date(0);
+      return new Date(Number(partes[3]), Number(partes[2]) - 1, Number(partes[1]), Number(partes[4]), Number(partes[5]), Number(partes[6] || 0));
+    }
+
+    function formatarData(data, curto = false) {
+      return new Intl.DateTimeFormat("pt-BR", curto
+        ? { hour: "2-digit", minute: "2-digit" }
+        : { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }
+      ).format(data);
+    }
+
+    function classeStatus(status) {
+      const valor = String(status ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      if (["ok", "online", "excelente"].includes(valor)) return "status-ok";
+      if (["atencao", "medio", "media", "normal"].includes(valor)) return "status-atencao";
+      if (["erro", "critico", "offline", "ruim"].includes(valor)) return "status-critico";
+      return "status-normal";
+    }
+
+    function definirStatus(id, textoStatus, status) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.className = `status-pill ${classeStatus(status ?? textoStatus)}`;
+      el.textContent = textoStatus ?? "-";
+    }
+
+    function mostrarErro(mensagem) {
+      const el = document.getElementById("erro");
+      el.textContent = mensagem;
+      el.hidden = false;
+    }
+
+    function ocultarErro() {
+      document.getElementById("erro").hidden = true;
+    }
+
+    function criarSvg(tag, attrs = {}, conteudo = "") {
+      const el = document.createElementNS(svgNamespace, tag);
+      Object.entries(attrs).forEach(([chave, valor]) => el.setAttribute(chave, valor));
+      if (conteudo) el.textContent = conteudo;
+      return el;
+    }
+
+    function registrosDoPayload(dados) {
+      const registros = Array.isArray(dados?.historico)
+        ? dados.historico
+        : Array.isArray(dados)
+          ? dados
+          : dados ? [dados] : [];
+
+      return registros
+        .filter(item => item && typeof item === "object")
+        .map(item => ({ ...item, _data: dataDaColeta(item) }))
+        .sort((a, b) => a._data - b._data);
+    }
+
+    function valorMaximo(registros, chave) {
+      const valores = registros.map(chave).filter(Number.isFinite);
+      return valores.length ? Math.max(...valores) : 0;
+    }
+
+    function pontosDoGauge(cx, cy, raio, valor) {
+      const percentual = Math.max(0, Math.min(100, Number(valor) || 0));
+      const anguloFinal = 180 - (percentual / 100) * 180;
+      const passos = Math.max(2, Math.ceil((180 - anguloFinal) / 6));
+      const pontos = [];
+
+      for (let i = 0; i <= passos; i += 1) {
+        const angulo = 180 - ((180 - anguloFinal) * i) / passos;
+        const rad = (angulo * Math.PI) / 180;
+        pontos.push(`${cx + raio * Math.cos(rad)},${cy - raio * Math.sin(rad)}`);
+      }
+
+      return pontos.join(" ");
+    }
+
+    function pontoDoGauge(cx, cy, raio, valor) {
+      const percentual = Math.max(0, Math.min(100, Number(valor) || 0));
+      const angulo = 180 - (percentual / 100) * 180;
+      const rad = (angulo * Math.PI) / 180;
+      return {
+        x: cx + raio * Math.cos(rad),
+        y: cy - raio * Math.sin(rad)
+      };
+    }
+
+    function desenharGauge(svg, config) {
+      const { cx, cy, raio, cor, percentual, rotulo, valor, apoio } = config;
+      const fimAgulha = pontoDoGauge(cx, cy, raio - 20, percentual);
+
+      svg.appendChild(criarSvg("polyline", {
+        points: pontosDoGauge(cx, cy, raio, 100),
+        fill: "none",
+        stroke: "#e7edf5",
+        "stroke-width": "16",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      }));
+      svg.appendChild(criarSvg("polyline", {
+        points: pontosDoGauge(cx, cy, raio, percentual),
+        fill: "none",
+        stroke: cor,
+        "stroke-width": "16",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      }));
+      svg.appendChild(criarSvg("line", {
+        x1: cx,
+        y1: cy,
+        x2: fimAgulha.x,
+        y2: fimAgulha.y,
+        stroke: "#26364f",
+        "stroke-width": "4",
+        "stroke-linecap": "round"
+      }));
+      svg.appendChild(criarSvg("circle", {
+        cx,
+        cy,
+        r: "7",
+        fill: "#26364f"
+      }));
+      svg.appendChild(criarSvg("text", {
+        x: cx,
+        y: cy + 30,
+        "text-anchor": "middle",
+        fill: "#152033",
+        "font-size": "22",
+        "font-weight": "850"
+      }, valor));
+      svg.appendChild(criarSvg("text", {
+        x: cx,
+        y: cy + 52,
+        "text-anchor": "middle",
+        fill: "#65728a",
+        "font-size": "12",
+        "font-weight": "800"
+      }, rotulo));
+      svg.appendChild(criarSvg("text", {
+        x: cx,
+        y: cy + 72,
+        "text-anchor": "middle",
+        fill: "#7b8798",
+        "font-size": "11"
+      }, apoio));
+    }
+
+    function renderizarGaugeDeColetaUnica(svg, registro, contratado, largura, altura) {
+      const link = registro.link || {};
+      const score = Number(link.sla?.score ?? registro.indicadores?.sla_score);
+      const gauges = [
+        {
+          cx: largura * 0.22,
+          cy: 178,
+          raio: 78,
+          cor: "#1957c2",
+          percentual: Math.min(100, (Number(link.download_mbps) / contratado) * 100),
+          rotulo: "Download",
+          valor: mbps(link.download_mbps),
+          apoio: `${porcentagem((Number(link.download_mbps) / contratado) * 100)} do contratado`
+        },
+        {
+          cx: largura * 0.5,
+          cy: 178,
+          raio: 78,
+          cor: "#1282a2",
+          percentual: Math.min(100, (Number(link.upload_mbps) / contratado) * 100),
+          rotulo: "Upload",
+          valor: mbps(link.upload_mbps),
+          apoio: `${porcentagem((Number(link.upload_mbps) / contratado) * 100)} do contratado`
+        },
+        {
+          cx: largura * 0.78,
+          cy: 178,
+          raio: 78,
+          cor: "#9a4d9e",
+          percentual: score,
+          rotulo: "Score SLA",
+          valor: porcentagem(score),
+          apoio: formatarData(registro._data, true)
+        }
+      ];
+
+      svg.appendChild(criarSvg("text", {
+        x: largura / 2,
+        y: 24,
+        "text-anchor": "middle",
+        fill: "#65728a",
+        "font-size": "12",
+        "font-weight": "800"
+      }, "Velocímetro da única coleta disponível"));
+
+      gauges.forEach(gauge => desenharGauge(svg, gauge));
+    }
+
+    function renderizarGrafico(registros, ultimo) {
+      const svg = document.getElementById("trend-chart");
+      const vazio = document.getElementById("trend-empty");
+      const largura = 900;
+      const altura = 282;
+      const margem = { topo: 18, direita: 20, base: 46, esquerda: 44 };
+      const larguraUtil = largura - margem.esquerda - margem.direita;
+      const alturaUtil = altura - margem.topo - margem.base;
+      const contratado = Number(ultimo?.link?.velocidade_contratada_mbps) || 300;
+
+      svg.replaceChildren();
+      svg.setAttribute("viewBox", `0 0 ${largura} ${altura}`);
+      vazio.hidden = registros.length > 0;
+      if (!registros.length) return;
+
+      if (registros.length === 1) {
+        renderizarGaugeDeColetaUnica(svg, registros[0], contratado, largura, altura);
+        return;
+      }
+
+      [0, 25, 50, 75, 100].forEach(valor => {
+        const y = margem.topo + alturaUtil - (valor / 100) * alturaUtil;
+        svg.appendChild(criarSvg("line", {
+          x1: margem.esquerda, x2: largura - margem.direita, y1: y, y2: y,
+          stroke: "#e7edf5", "stroke-width": "1"
+        }));
+        svg.appendChild(criarSvg("text", {
+          x: 10, y: y + 4, fill: "#7b8798", "font-size": "11"
+        }, `${valor}%`));
+      });
+
+      const x = indice => margem.esquerda + (
+        registros.length === 1 ? larguraUtil / 2 : (indice / (registros.length - 1)) * larguraUtil
+      );
+      const y = valor => margem.topo + alturaUtil - Math.max(0, Math.min(100, valor)) / 100 * alturaUtil;
+      const series = [
+        { cor: "#1957c2", valor: r => Math.min(100, (Number(r.link?.download_mbps) / contratado) * 100) },
+        { cor: "#1282a2", valor: r => Math.min(100, (Number(r.link?.upload_mbps) / contratado) * 100) },
+        { cor: "#9a4d9e", valor: r => Number(r.link?.sla?.score ?? r.indicadores?.sla_score) }
+      ];
+
+      registros.forEach((registro, indice) => {
+        const posX = x(indice);
+        svg.appendChild(criarSvg("line", {
+          x1: posX, x2: posX, y1: margem.topo, y2: margem.topo + alturaUtil,
+          stroke: "#f1f4f8", "stroke-width": "1"
+        }));
+        svg.appendChild(criarSvg("text", {
+          x: posX, y: altura - 13, "text-anchor": "middle", fill: "#7b8798", "font-size": "10"
+        }, formatarData(registro._data, true)));
+      });
+
+      series.forEach(serie => {
+        const pontos = registros.map((registro, indice) => `${x(indice)},${y(serie.valor(registro))}`).join(" ");
+        svg.appendChild(criarSvg("polyline", {
+          points: pontos,
+          fill: "none",
+          stroke: serie.cor,
+          "stroke-width": "3",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        }));
+        registros.forEach((registro, indice) => {
+          svg.appendChild(criarSvg("circle", {
+            cx: x(indice), cy: y(serie.valor(registro)), r: "3.5",
+            fill: "#fff", stroke: serie.cor, "stroke-width": "2"
+          }));
+        });
+      });
+    }
+
+    function adicionarQualidade(rotulo, valor, classe = "") {
+      const lista = document.getElementById("qualidade-lista");
+      const item = document.createElement("div");
+      const label = document.createElement("span");
+      const barra = document.createElement("div");
+      const preenchimento = document.createElement("span");
+      const valorEl = document.createElement("strong");
+
+      item.className = "quality-item";
+      label.className = "info-label";
+      label.textContent = rotulo;
+      barra.className = `bar ${classe}`;
+      preenchimento.style.height = `${Math.max(0, Math.min(100, Number(valor) || 0))}%`;
+      valorEl.className = "detail-value";
+      valorEl.textContent = porcentagem(valor);
+      barra.appendChild(preenchimento);
+      item.append(barra, valorEl, label);
+      lista.appendChild(item);
+    }
+
+    function adicionarDetalhe(rotulo, valor) {
+      const lista = document.getElementById("detalhes-link");
+      const linha = document.createElement("div");
+      const label = document.createElement("span");
+      const valorEl = document.createElement("strong");
+      linha.className = "detail-row";
+      label.className = "info-label";
+      label.textContent = rotulo;
+      valorEl.className = "detail-value";
+      valorEl.textContent = valor ?? "-";
+      linha.append(label, valorEl);
+      lista.appendChild(linha);
+    }
+
+    function renderizarAps(ultimo) {
+      const tbody = document.getElementById("tabela-aps");
+      const aps = Array.isArray(ultimo?.wifi?.aps) ? ultimo.wifi.aps : [];
+      tbody.replaceChildren();
+      texto("aps-legenda", `${inteiro(ultimo?.wifi?.online_aps)} online · ${inteiro(ultimo?.wifi?.offline_aps)} offline`);
+
+      if (!aps.length) {
+        const linha = document.createElement("tr");
+        const coluna = document.createElement("td");
+        coluna.colSpan = 3;
+        coluna.className = "muted";
+        coluna.textContent = "Nenhum AP encontrado no JSON.";
+        linha.appendChild(coluna);
+        tbody.appendChild(linha);
+        return;
+      }
+
+      aps.forEach(ap => {
+        const linha = document.createElement("tr");
+        const apTd = document.createElement("td");
+        const nomeWrap = document.createElement("div");
+        const titulo = document.createElement("strong");
+        const subtitulo = document.createElement("span");
+        const clientesTd = document.createElement("td");
+        const statusTd = document.createElement("td");
+        const status = document.createElement("span");
+
+        nomeWrap.className = "table-name";
+        nomeWrap.style.display = "block";
+        titulo.textContent = ap.nome ?? "-";
+        subtitulo.textContent = ap.mac ?? "-";
+        nomeWrap.append(titulo, subtitulo);
+        apTd.appendChild(nomeWrap);
+        clientesTd.textContent = inteiro(ap.clientes);
+        status.className = `mini-status ${ap.online ? "status-ok" : "status-offline"}`;
+        status.textContent = ap.online ? "Online" : "Offline";
+        statusTd.appendChild(status);
+        linha.append(apTd, clientesTd, statusTd);
+        tbody.appendChild(linha);
+      });
+    }
+
+    function statusImpressora(imp) {
+      const codigo = Number(imp?.status_code);
+      if ([3, 12].includes(codigo)) return "status-ok";
+      if ([1, 4, 18, 19].includes(codigo)) return "status-atencao";
+      return "status-critico";
+    }
+
+    function renderizarImpressoras(ultimo) {
+      const tbody = document.getElementById("tabela-impressoras");
+      const impressoras = Array.isArray(ultimo?.impressoras?.itens) ? ultimo.impressoras.itens : [];
+      tbody.replaceChildren();
+      texto("impressoras-legenda", `Servidor ${ultimo?.impressoras?.servidor ?? "-"} · ${ultimo?.impressoras?.status_geral ?? "-"}`);
+
+      if (!impressoras.length) {
+        const linha = document.createElement("tr");
+        const coluna = document.createElement("td");
+        coluna.colSpan = 4;
+        coluna.className = "muted";
+        coluna.textContent = "Nenhuma impressora encontrada no JSON.";
+        linha.appendChild(coluna);
+        tbody.appendChild(linha);
+        return;
+      }
+
+      impressoras.forEach(imp => {
+        const linha = document.createElement("tr");
+        const nomeTd = document.createElement("td");
+        const nomeWrap = document.createElement("div");
+        const nome = document.createElement("strong");
+        const destino = document.createElement("span");
+        const statusTd = document.createElement("td");
+        const status = document.createElement("span");
+        const toner = document.createElement("td");
+        const fila = document.createElement("td");
+
+        nomeWrap.className = "table-name";
+        nomeWrap.style.display = "block";
+        nome.textContent = imp.nome ?? "-";
+        destino.textContent = imp.ip_destino ?? "-";
+        nomeWrap.append(nome, destino);
+        nomeTd.appendChild(nomeWrap);
+        status.className = `mini-status ${statusImpressora(imp)}`;
+        status.textContent = imp.status ?? "-";
+        statusTd.appendChild(status);
+        toner.textContent = imp.toner ?? "-";
+        fila.textContent = inteiro(imp.fila);
+        linha.append(nomeTd, statusTd, toner, fila);
+        tbody.appendChild(linha);
+      });
+    }
+
+    function renderizarDashboard(dados, fonte) {
+      const registros = registrosDoPayload(dados);
+      if (!registros.length) {
+        mostrarErro("O JSON não contém histórico de coletas.");
+        return;
+      }
+
+      const ultimo = registros[registros.length - 1];
+      const indicadores = ultimo.indicadores || {};
+      const link = ultimo.link || {};
+      const sla = link.sla || {};
+      const wifi = ultimo.wifi || {};
+      const impressoras = ultimo.impressoras || {};
+      const score = Number(sla.score ?? indicadores.sla_score);
+
+      ocultarErro();
+      texto("titulo-local", ultimo.local ?? dados.local ?? "Fábrica");
+      texto("ultima-coleta", ultimo.data_hora ?? formatarData(ultimo._data));
+      definirStatus("status-geral", ultimo.status_geral ?? "-", ultimo.status_geral);
+
+      texto("score-sla", porcentagem(score));
+      definirStatus("classificacao-link", link.classificacao ?? "-", link.classificacao);
+      texto("download-atual", mbps(link.download_mbps));
+      texto("upload-atual", mbps(link.upload_mbps));
+      texto("ping-atual", ms(link.ping_ms));
+      texto("jitter-atual", ms(link.jitter_ms));
+      texto("ip-publico", link.ip_publico);
+      texto("provedor-link", link.provedor);
+
+      texto("kpi-alertas", inteiro(indicadores.total_alertas));
+      texto("kpi-alertas-legenda", ultimo.status_geral === "CRITICO" ? "Exige atenção operacional" : "Sem criticidade alta na última coleta");
+      texto("kpi-aps", `${inteiro(wifi.online_aps)}/${inteiro(wifi.total_aps)}`);
+      texto("kpi-aps-legenda", `${inteiro(wifi.offline_aps)} offline · ${inteiro(wifi.clientes_total)} cliente(s)`);
+      texto("kpi-clientes", inteiro(indicadores.clientes_wifi ?? wifi.clientes_total));
+      texto("kpi-impressoras", inteiro(impressoras.total));
+      texto("kpi-impressoras-legenda", `${inteiro(impressoras.offline)} offline · ${inteiro(impressoras.com_fila)} com fila`);
+      texto("kpi-coletas", registros.length);
+      texto("kpi-coletas-legenda", `Pico de download: ${mbps(valorMaximo(registros, r => Number(r.link?.download_mbps)))}`);
+
+      const qualidade = document.getElementById("qualidade-lista");
+      qualidade.replaceChildren();
+      adicionarQualidade("Download", sla.down_p, "success");
+      adicionarQualidade("Upload", sla.up_p, Number(sla.up_p) >= 70 ? "success" : "warning");
+      adicionarQualidade("Ping", sla.ping_p, Number(sla.ping_p) >= 50 ? "success" : "warning");
+      adicionarQualidade("SLA", score, score >= 60 ? "success" : "danger");
+
+      const detalhes = document.getElementById("detalhes-link");
+      detalhes.replaceChildren();
+      adicionarDetalhe("Velocidade contratada", mbps(link.velocidade_contratada_mbps));
+      adicionarDetalhe("Status do link", link.status);
+      adicionarDetalhe("Classificação", link.classificacao);
+      adicionarDetalhe("Score SLA", porcentagem(score));
+
+      renderizarGrafico(registros, ultimo);
+      renderizarAps(ultimo);
+      renderizarImpressoras(ultimo);
+    }
+
+    function endpointConfigurado() {
+      return urlStatus && !urlStatus.includes("COLE_AQUI_O_DEPLOY");
+    }
+
+    function montarUrlStatus(parametros = {}) {
+      const url = new URL(urlStatus);
+      Object.entries(parametros).forEach(([chave, valor]) => {
+        if (valor !== undefined && valor !== null && valor !== "") url.searchParams.set(chave, valor);
+      });
+      url.searchParams.set("folderId", driveFolderId);
+      url.searchParams.set("prefix", jsonPrefix);
+      url.searchParams.set("_", Date.now());
+      return url.toString();
+    }
+
+    function receberStatus(dados) {
+      try {
+        clearTimeout(timeoutCarregamento);
+        document.getElementById("jsonp-status")?.remove();
+
+        const fonte = Array.isArray(dados?.arquivos_processados) && dados.arquivos_processados.length
+          ? `${dados.arquivos_processados.length} arquivo(s) da pasta Google Drive`
+          : "Google Drive";
+
+        renderizarDashboard(dados, fonte);
+        texto("fonte-drive", `Pasta ${dados?.pasta_id ?? driveFolderId}`);
+
+        if (Array.isArray(dados?.erros) && dados.erros.length) {
+          mostrarErro(`${dados.erros.length} arquivo(s) da pasta não puderam ser lidos.`);
+        } else {
+          ocultarErro();
+        }
+      } catch (erro) {
+        mostrarErro(`Erro ao processar dados do Google Drive: ${erro.message}`);
+        definirStatus("status-geral", "Sem dados", "erro");
+      }
+    }
+
+    function receberArquivosDisponiveis(dados) {
+      try {
+        document.getElementById("jsonp-datas")?.remove();
+        const dataSelecionada = popularDatasDisponiveis(dados?.arquivos_processados || []);
+        texto("fonte-drive", `Pasta ${dados?.pasta_id ?? driveFolderId}`);
+
+        if (!dataSelecionada) {
+          mostrarErro("Nenhum arquivo diário da Fábrica foi encontrado na pasta do Google Drive.");
+          return;
+        }
+
+        carregarPorData();
+      } catch (erro) {
+        mostrarErro(`Erro ao listar datas disponíveis: ${erro.message}`);
+      }
+    }
+
+    function carregarDatasDisponiveis() {
+      if (!endpointConfigurado()) {
+        mostrarErro("Configure a URL do Apps Script da Fábrica na constante urlStatus para ler a pasta do Google Drive.");
+        return;
+      }
+
+      document.getElementById("jsonp-datas")?.remove();
+      const script = document.createElement("script");
+      script.id = "jsonp-datas";
+      script.src = montarUrlStatus({ callback: "receberArquivosDisponiveis" });
+      script.onerror = () => {
+        mostrarErro("Não foi possível listar as datas disponíveis no Google Drive.");
+      };
+      document.head.appendChild(script);
+    }
+
+    function carregarPorData() {
+      const data = dataSelecionada;
+      if (!data) return;
+      const arquivo = dataParaArquivo(data);
+
+      if (!endpointConfigurado()) {
+        mostrarErro("Configure a URL do Apps Script da Fábrica na constante urlStatus para ler a pasta do Google Drive.");
+        definirStatus("status-geral", "Sem dados", "erro");
+        return;
+      }
+
+      clearTimeout(timeoutCarregamento);
+      document.getElementById("jsonp-status")?.remove();
+      ocultarErro();
+      definirStatus("status-geral", "Carregando", "normal");
+
+      const script = document.createElement("script");
+      script.id = "jsonp-status";
+      script.src = montarUrlStatus({ callback: "receberStatus", arquivo });
+      script.onerror = () => {
+        clearTimeout(timeoutCarregamento);
+        mostrarErro(`Não foi possível acessar o Apps Script para carregar ${arquivo}.`);
+        definirStatus("status-geral", "Sem dados", "erro");
+      };
+
+      timeoutCarregamento = setTimeout(() => {
+        script.remove();
+        mostrarErro(`Tempo limite excedido ao consultar o Apps Script para carregar ${arquivo}.`);
+        definirStatus("status-geral", "Sem dados", "erro");
+      }, 10000);
+
+      document.head.appendChild(script);
+    }
+
+    btnMesAnterior.addEventListener("click", () => {
+      mesVisivel = new Date(mesVisivel.getFullYear(), mesVisivel.getMonth() - 1, 1);
+      renderizarCalendario();
+    });
+
+    btnMesProximo.addEventListener("click", () => {
+      mesVisivel = new Date(mesVisivel.getFullYear(), mesVisivel.getMonth() + 1, 1);
+      renderizarCalendario();
+    });
+
+    carregarDatasDisponiveis();
+    setInterval(carregarPorData, 60000);
+  </script>
+</body>
+</html>

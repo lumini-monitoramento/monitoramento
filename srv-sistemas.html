@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistemas | Monitoramento</title>
+  <style>
+    :root {
+      --bg: #f2f5f9;
+      --card: #ffffff;
+      --ink: #172033;
+      --muted: #68758a;
+      --line: #e2e8f0;
+      --primary: #2158d3;
+      --primary-soft: #eaf0ff;
+      --ok: #0d9b63;
+      --ok-soft: #e3f8ef;
+      --warn: #e08a19;
+      --warn-soft: #fff3dd;
+      --bad: #d64545;
+      --bad-soft: #fdeaea;
+      --shadow: 0 10px 30px rgba(35, 54, 86, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-width: 320px;
+      margin: 0;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    .topbar {
+      color: #fff;
+      background: linear-gradient(120deg, #14264d, #1e4b9a 65%, #2872ce);
+    }
+
+    .topbar-inner,
+    .dashboard {
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      min-height: 128px;
+      padding: 24px 32px;
+    }
+
+    .eyebrow {
+      margin-bottom: 7px;
+      color: #c6d8ff;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-size: clamp(25px, 3vw, 36px);
+      letter-spacing: 0;
+    }
+
+    h2 {
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      color: #d9e6ff;
+      font-size: 14px;
+    }
+
+    .calendar-panel {
+      width: 280px;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .calendar-header,
+    .calendar-grid {
+      display: grid;
+      align-items: center;
+    }
+
+    .calendar-header {
+      grid-template-columns: 34px 1fr 34px;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .calendar-title {
+      font-size: 13px;
+      font-weight: 800;
+      text-align: center;
+      text-transform: capitalize;
+    }
+
+    .calendar-nav,
+    .calendar-day {
+      border: 0;
+      border-radius: 7px;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.14);
+      cursor: pointer;
+    }
+
+    .calendar-nav {
+      width: 34px;
+      height: 32px;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .calendar-grid {
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+    }
+
+    .calendar-weekday {
+      color: #c9dcff;
+      font-size: 10px;
+      font-weight: 800;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .calendar-day {
+      height: 30px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .calendar-day:hover:not(:disabled),
+    .calendar-day.active {
+      background: #fff;
+      color: var(--primary);
+    }
+
+    .calendar-day:disabled {
+      color: rgba(255, 255, 255, 0.34);
+      background: rgba(255, 255, 255, 0.06);
+      cursor: not-allowed;
+    }
+
+    .calendar-empty {
+      visibility: hidden;
+    }
+
+    .dashboard {
+      padding: 24px 32px 36px;
+    }
+
+    .card,
+    .error {
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      border-radius: 14px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
+
+    .card {
+      padding: 18px;
+      overflow: hidden;
+    }
+
+    .error {
+      margin-bottom: 18px;
+      padding: 14px 16px;
+      color: var(--bad);
+      background: var(--bad-soft);
+      font-weight: 800;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .hero-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .kpi-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .content-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .single-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .hero-card {
+      min-height: 222px;
+      color: #fff;
+      background:
+        linear-gradient(120deg, rgba(20, 38, 77, 0.98), rgba(30, 75, 154, 0.96) 65%, rgba(40, 114, 206, 0.94)),
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.08) 0, rgba(255,255,255,0.08) 1px, transparent 1px, transparent 46px);
+    }
+
+    .hero-layout {
+      display: grid;
+      grid-template-columns: minmax(240px, 0.9fr) minmax(320px, 1.1fr);
+      gap: 18px;
+      min-height: 174px;
+    }
+
+    .score-wrap {
+      display: grid;
+      align-content: center;
+      gap: 16px;
+    }
+
+    .score-value {
+      display: block;
+      font-size: clamp(42px, 6vw, 70px);
+      font-weight: 900;
+      line-height: 0.98;
+    }
+
+    .hero-metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      align-content: center;
+    }
+
+    .hero-metric {
+      min-height: 76px;
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .metric-label,
+    .kpi-label,
+    .info-label,
+    .caption,
+    .muted {
+      color: var(--muted);
+    }
+
+    .hero-card .metric-label,
+    .hero-card .caption {
+      color: #d7e7ff;
+    }
+
+    .metric-label,
+    .kpi-label,
+    .info-label {
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+
+    .metric-value,
+    .kpi-value {
+      display: block;
+      margin-top: 8px;
+      font-weight: 850;
+      letter-spacing: 0;
+    }
+
+    .metric-value {
+      font-size: 24px;
+    }
+
+    .kpi-value {
+      margin: 12px 0 7px;
+      font-size: 31px;
+    }
+
+    .status-pill,
+    .mini-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .status-pill {
+      padding: 8px 11px;
+    }
+
+    .mini-status {
+      padding: 5px 8px;
+    }
+
+    .status-pill::before,
+    .mini-status::before {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      content: "";
+    }
+
+    .status-ok {
+      color: var(--ok);
+      background: var(--ok-soft);
+    }
+
+    .status-warning {
+      color: var(--warn);
+      background: var(--warn-soft);
+    }
+
+    .status-bad {
+      color: var(--bad);
+      background: var(--bad-soft);
+    }
+
+    .status-normal {
+      color: var(--primary);
+      background: var(--primary-soft);
+    }
+
+    .card-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .detail-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .detail-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .detail-row:last-child {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+
+    .detail-value {
+      font-weight: 850;
+      text-align: right;
+    }
+
+    .portal-subtitle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      min-width: 0;
+    }
+
+    .portal-url {
+      overflow: hidden;
+      min-width: 0;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .report-matrix {
+      display: grid;
+      gap: 18px;
+    }
+
+    .report-row {
+      display: grid;
+      grid-template-columns: minmax(150px, 0.8fr) repeat(3, minmax(120px, 1fr));
+      align-items: center;
+      gap: 14px;
+      padding: 2px 0 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .report-row:last-child {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+
+    .report-category {
+      font-size: 13px;
+      font-weight: 850;
+      color: var(--ink);
+    }
+
+    .report-item {
+      display: grid;
+      justify-items: center;
+      gap: 7px;
+      min-width: 0;
+      text-align: center;
+    }
+
+    .report-label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .report-value {
+      max-width: 100%;
+      overflow: hidden;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 850;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      background: #f8fafc;
+    }
+
+    .table-name {
+      display: grid;
+      gap: 3px;
+    }
+
+    .table-name span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    @media (max-width: 1180px) {
+      .hero-grid,
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .kpi-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 860px) {
+      .topbar-inner,
+      .hero-layout {
+        align-items: flex-start;
+        grid-template-columns: 1fr;
+        flex-direction: column;
+      }
+
+      .calendar-panel {
+        width: 100%;
+      }
+
+      .kpi-grid,
+      .hero-metrics {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .report-row {
+        grid-template-columns: 1fr 1fr;
+        align-items: start;
+      }
+
+      .report-category {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .topbar-inner,
+      .dashboard {
+        padding-right: 18px;
+        padding-left: 18px;
+      }
+
+      .kpi-grid,
+      .hero-metrics {
+        grid-template-columns: 1fr;
+      }
+
+      .report-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div>
+        <p class="eyebrow">Central de monitoramento</p>
+        <h1 id="titulo-local">Sistemas</h1>
+        <p class="subtitle">Última coleta <span id="ultima-coleta">-</span></p>
+      </div>
+      <div class="calendar-panel" aria-label="Calendário de arquivos disponíveis">
+        <div class="calendar-header">
+          <button id="mes-anterior" class="calendar-nav" type="button" aria-label="Mês anterior">‹</button>
+          <strong id="calendario-titulo" class="calendar-title">-</strong>
+          <button id="mes-proximo" class="calendar-nav" type="button" aria-label="Próximo mês">›</button>
+        </div>
+        <div id="calendario-dias" class="calendar-grid"></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <div id="erro" class="error" hidden></div>
+
+    <section class="grid hero-grid">
+      <article class="card hero-card">
+        <div class="hero-layout">
+          <div class="score-wrap">
+            <div>
+              <span class="metric-label">Status geral</span>
+              <strong id="status-principal" class="score-value">-</strong>
+            </div>
+            <div>
+              <span id="status-geral" class="status-pill status-normal">-</span>
+            </div>
+          </div>
+          <div class="hero-metrics">
+            <article class="hero-metric">
+              <span class="metric-label">ERP Lumini</span>
+              <strong id="resumo-erp-lumini" class="metric-value">-</strong>
+            </article>
+            <article class="hero-metric">
+              <span class="metric-label">ERP Euroluce</span>
+              <strong id="resumo-erp-euroluce" class="metric-value">-</strong>
+            </article>
+            <article class="hero-metric">
+              <span class="metric-label">Qlik BI</span>
+              <strong id="resumo-qlik" class="metric-value">-</strong>
+            </article>
+            <article class="hero-metric">
+              <span class="metric-label">Backup Cloud</span>
+              <strong id="resumo-cloud" class="metric-value">-</strong>
+            </article>
+            <article class="hero-metric">
+              <span class="metric-label">Kaspersky</span>
+              <strong id="resumo-kaspersky" class="metric-value">-</strong>
+            </article>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="grid kpi-grid">
+      <article class="card">
+        <span class="kpi-label">Alertas</span>
+        <strong id="kpi-alertas" class="kpi-value">-</strong>
+        <span id="kpi-alertas-legenda" class="caption">-</span>
+      </article>
+      <article class="card">
+        <span class="kpi-label">Slaves ERP</span>
+        <strong id="kpi-erp" class="kpi-value">-</strong>
+        <span class="caption">Ativos / total</span>
+      </article>
+      <article class="card">
+        <span class="kpi-label">Usuários TS</span>
+        <strong id="kpi-ts" class="kpi-value">-</strong>
+        <span class="caption">Sessões online</span>
+      </article>
+      <article class="card">
+        <span class="kpi-label">Backup LTO</span>
+        <strong id="kpi-lto" class="kpi-value">-</strong>
+        <span class="caption">Sucesso / total</span>
+      </article>
+      <article class="card">
+        <span class="kpi-label">Backup Cloud</span>
+        <strong id="kpi-cloud" class="kpi-value">-</strong>
+        <span class="caption">Alertas encontrados</span>
+      </article>
+    </section>
+
+    <section class="grid content-grid">
+      <article class="card">
+        <div class="card-title-row">
+          <div>
+            <h2>ERP Lumini</h2>
+            <p id="portal-lumini" class="portal-subtitle">Portal Web: -</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Serviço</th>
+                <th>Porta</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-erp-lumini"></tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-title-row">
+          <div>
+            <h2>ERP Euroluce</h2>
+            <p id="portal-euroluce" class="portal-subtitle">Portal Web: -</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Serviço</th>
+                <th>Porta</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-erp-euroluce"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section class="grid content-grid">
+      <article class="card">
+        <div class="card-title-row">
+          <div>
+            <h2>QlikView BI</h2>
+            <p class="caption">Execução do extrator de dados</p>
+          </div>
+        </div>
+        <div id="detalhes-qlik" class="detail-list"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-title-row">
+          <div>
+            <h2>Usuários TS</h2>
+            <p class="caption">Sessões RDP identificadas na última coleta</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Usuário</th>
+                <th>Login</th>
+                <th>Tempo</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-ts"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section class="grid content-grid">
+      <article class="card">
+        <div class="card-title-row">
+          <div>
+            <h2>Backup Local - Fita LTO</h2>
+            <p id="lto-legenda" class="caption">-</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Servidor</th>
+                <th>Job</th>
+                <th>Método</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-lto"></tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-title-row">
+          <div>
+            <h2>Backup Cloud</h2>
+            <p class="caption">Algar Acronis por servidor</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Servidor</th>
+                <th>Plano</th>
+                <th>Início</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-cloud"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section class="grid single-grid">
+      <article class="card">
+        <div class="card-title-row">
+          <div>
+            <h2>Kaspersky</h2>
+            <p id="kaspersky-legenda" class="caption">Relatório consolidado por e-mail</p>
+          </div>
+        </div>
+        <div id="detalhes-kaspersky" class="report-matrix"></div>
+      </article>
+    </section>
+
+    <section class="grid single-grid">
+      <article class="card">
+        <div class="card-title-row">
+          <div>
+            <h2>Histórico recente</h2>
+            <p class="caption">Coletas do arquivo diário selecionado</p>
+          </div>
+          <span id="total-coletas" class="caption">0 coletas</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Data e hora</th>
+                <th>Alertas</th>
+                <th>ERP</th>
+                <th>Qlik</th>
+                <th>Cloud</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-historico"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <p class="footer-note">Atualização automática a cada 60 segundos · <span id="fonte-drive">histórico diário da pasta Google Drive</span></p>
+  </main>
+
+  <script>
+    const urlStatus = "https://script.google.com/macros/s/AKfycbxWqabiS9lp-opidN_p-ZsCHKkvXydwl_AupV_S8FiP0Dy1ES52FhwMh3HPE9NQ5b917g/exec";
+    const driveFolderId = "1607F0zDoW8KtTTpLDhQDzAuotACnZ9hR";
+    const jsonPrefix = "historico_sistemas";
+    const calendarioTitulo = document.getElementById("calendario-titulo");
+    const calendarioDias = document.getElementById("calendario-dias");
+    const btnMesAnterior = document.getElementById("mes-anterior");
+    const btnMesProximo = document.getElementById("mes-proximo");
+    let datasDisponiveis = [];
+    let dataSelecionada = "";
+    let mesVisivel = new Date();
+    let timeoutCarregamento;
+
+    function texto(id, valor) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = valor ?? "-";
+    }
+
+    function inteiro(valor) {
+      const n = Number(valor);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function classeStatus(status) {
+      const valor = String(status ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      if (valor.includes("falha") || valor.includes("erro") || valor.includes("critico") || valor.includes("ataques") || valor.includes("indisponivel")) return "status-bad";
+      if (["failed", "cancelled", "error", "inativo"].includes(valor)) return "status-bad";
+      if (["ok", "online", "sucesso", "executado", "disponivel", "ativo", "finished", "completed", "concluido", "finalizado"].includes(valor)) return "status-ok";
+      if (valor.includes("alerta") || valor.includes("atencao")) return "status-warning";
+      if (["warning", "active", "pendente", "n/a", "carregando"].includes(valor)) return "status-warning";
+      return "status-normal";
+    }
+
+    function definirStatus(id, textoStatus, status = textoStatus) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.className = `status-pill ${classeStatus(status)}`;
+      el.textContent = textoStatus ?? "-";
+    }
+
+    function miniStatus(textoStatus, status = textoStatus) {
+      const span = document.createElement("span");
+      span.className = `mini-status ${classeStatus(status)}`;
+      span.textContent = textoStatus ?? "-";
+      return span;
+    }
+
+    function dataParaArquivo(data) {
+      return `${jsonPrefix}_${data}.json`;
+    }
+
+    function dataDoNomeArquivo(nome) {
+      const encontrado = String(nome ?? "").match(/^historico_sistemas_(\d{4}-\d{2}-\d{2})\.json$/);
+      return encontrado ? encontrado[1] : null;
+    }
+
+    function dataISO(ano, mesZero, dia) {
+      return `${ano}-${String(mesZero + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
+    }
+
+    function dataLocalDeISO(data) {
+      const [ano, mes, dia] = data.split("-").map(Number);
+      return new Date(ano, mes - 1, dia);
+    }
+
+    function dataDaColeta(registro) {
+      if (Number.isFinite(Number(registro?.timestamp))) return new Date(Number(registro.timestamp));
+      const partes = String(registro?.data_hora ?? "").match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})(?::(\d{2}))?/);
+      if (!partes) return new Date(0);
+      return new Date(Number(partes[3]), Number(partes[2]) - 1, Number(partes[1]), Number(partes[4]), Number(partes[5]), Number(partes[6] || 0));
+    }
+
+    function formatarData(data) {
+      return new Intl.DateTimeFormat("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      }).format(data);
+    }
+
+    function registrosDoPayload(dados) {
+      const registros = Array.isArray(dados?.historico)
+        ? dados.historico
+        : Array.isArray(dados)
+          ? dados
+          : dados ? [dados] : [];
+
+      return registros
+        .filter(item => item && typeof item === "object")
+        .map(item => ({ ...item, _data: dataDaColeta(item) }))
+        .sort((a, b) => a._data - b._data);
+    }
+
+    function adicionarDetalhe(lista, rotulo, valor) {
+      const linha = document.createElement("div");
+      const label = document.createElement("span");
+      const valorEl = document.createElement("strong");
+      linha.className = "detail-row";
+      label.className = "info-label";
+      label.textContent = rotulo;
+      valorEl.className = "detail-value";
+      valorEl.textContent = valor ?? "-";
+      linha.append(label, valorEl);
+      lista.appendChild(linha);
+    }
+
+    function mostrarErro(mensagem) {
+      const el = document.getElementById("erro");
+      el.textContent = mensagem;
+      el.hidden = false;
+    }
+
+    function ocultarErro() {
+      document.getElementById("erro").hidden = true;
+    }
+
+    function preencherVazio(tbody, colunas, mensagem) {
+      const linha = document.createElement("tr");
+      const coluna = document.createElement("td");
+      coluna.colSpan = colunas;
+      coluna.className = "muted";
+      coluna.textContent = mensagem;
+      linha.appendChild(coluna);
+      tbody.appendChild(linha);
+    }
+
+    function renderizarCalendario() {
+      calendarioDias.replaceChildren();
+      const ano = mesVisivel.getFullYear();
+      const mes = mesVisivel.getMonth();
+      const primeiroDiaSemana = new Date(ano, mes, 1).getDay();
+      const totalDias = new Date(ano, mes + 1, 0).getDate();
+      const disponiveis = new Set(datasDisponiveis);
+
+      calendarioTitulo.textContent = new Intl.DateTimeFormat("pt-BR", {
+        month: "long",
+        year: "numeric"
+      }).format(mesVisivel);
+
+      ["D", "S", "T", "Q", "Q", "S", "S"].forEach(rotulo => {
+        const el = document.createElement("span");
+        el.className = "calendar-weekday";
+        el.textContent = rotulo;
+        calendarioDias.appendChild(el);
+      });
+
+      for (let i = 0; i < primeiroDiaSemana; i += 1) {
+        const vazio = document.createElement("span");
+        vazio.className = "calendar-empty";
+        calendarioDias.appendChild(vazio);
+      }
+
+      for (let dia = 1; dia <= totalDias; dia += 1) {
+        const iso = dataISO(ano, mes, dia);
+        const botao = document.createElement("button");
+        botao.type = "button";
+        botao.className = `calendar-day${iso === dataSelecionada ? " active" : ""}`;
+        botao.textContent = dia;
+        botao.disabled = !disponiveis.has(iso);
+        botao.addEventListener("click", () => {
+          dataSelecionada = iso;
+          renderizarCalendario();
+          carregarPorData();
+        });
+        calendarioDias.appendChild(botao);
+      }
+    }
+
+    function popularDatasDisponiveis(arquivos) {
+      datasDisponiveis = [...new Set((arquivos || []).map(dataDoNomeArquivo).filter(Boolean))]
+        .sort((a, b) => b.localeCompare(a));
+      const preferida = new URLSearchParams(location.search).get("data");
+
+      if (!datasDisponiveis.length) {
+        calendarioTitulo.textContent = "Sem datas disponíveis";
+        calendarioDias.replaceChildren();
+        return "";
+      }
+
+      dataSelecionada = datasDisponiveis.includes(preferida)
+        ? preferida
+        : datasDisponiveis.includes(dataSelecionada)
+          ? dataSelecionada
+          : datasDisponiveis[0];
+      mesVisivel = dataLocalDeISO(dataSelecionada);
+      renderizarCalendario();
+      return dataSelecionada;
+    }
+
+    function renderizarPortalErp(id, dados) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.replaceChildren();
+
+      const endereco = document.createElement("span");
+      const status = miniStatus(dados?.web ?? "-", dados?.web);
+      endereco.className = "portal-url";
+      endereco.textContent = `Portal Web: ${dados?.url ?? "-"}`;
+      el.append(endereco, status);
+    }
+
+    function renderizarTabelaErp(id, dados) {
+      const tbody = document.getElementById(id);
+      tbody.replaceChildren();
+
+      if (!dados) {
+        preencherVazio(tbody, 3, "Nenhum dado de ERP encontrado.");
+        return;
+      }
+
+      (dados.slaves || []).forEach(slave => {
+        const linha = document.createElement("tr");
+        const nomeTd = document.createElement("td");
+        const portaTdSlave = document.createElement("td");
+        const statusTdSlave = document.createElement("td");
+        nomeTd.textContent = slave.nome ?? "-";
+        portaTdSlave.textContent = slave.porta ?? "-";
+        statusTdSlave.appendChild(miniStatus(slave.status, slave.status));
+        linha.append(nomeTd, portaTdSlave, statusTdSlave);
+        tbody.appendChild(linha);
+      });
+
+      if (!tbody.children.length) preencherVazio(tbody, 3, "Nenhum dado de ERP encontrado.");
+    }
+
+    function renderizarErp(ultimo) {
+      renderizarPortalErp("portal-lumini", ultimo.erp?.lumini);
+      renderizarPortalErp("portal-euroluce", ultimo.erp?.euroluce);
+      renderizarTabelaErp("tabela-erp-lumini", ultimo.erp?.lumini);
+      renderizarTabelaErp("tabela-erp-euroluce", ultimo.erp?.euroluce);
+    }
+
+    function statusErp(dados) {
+      if (!dados) return "-";
+      const webOk = String(dados.web ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === "disponivel";
+      const slaves = Array.isArray(dados.slaves) ? dados.slaves : [];
+      const inativos = slaves.filter(slave => slave.status !== "ATIVO").length;
+      if (!webOk || inativos === slaves.length && slaves.length > 0) return "Atenção";
+      if (inativos > 0) return `${inativos} alerta(s)`;
+      return "Online";
+    }
+
+    function renderizarQlik(ultimo) {
+      const lista = document.getElementById("detalhes-qlik");
+      const qlik = ultimo.qlik || {};
+      lista.replaceChildren();
+      adicionarDetalhe(lista, "Status", qlik.status);
+      adicionarDetalhe(lista, "Início", qlik.start);
+      adicionarDetalhe(lista, "Fim", qlik.end);
+      adicionarDetalhe(lista, "Duração", qlik.duration);
+      adicionarDetalhe(lista, "Tamanho do log", qlik.size);
+      if (qlik.error) adicionarDetalhe(lista, "Erro", qlik.error_detail || "Falha não detalhada");
+    }
+
+    function renderizarLto(ultimo) {
+      const tbody = document.getElementById("tabela-lto");
+      const itens = Array.isArray(ultimo.backup_lto?.itens) ? ultimo.backup_lto.itens : [];
+      tbody.replaceChildren();
+      texto("lto-legenda", `Verificado em ${ultimo.backup_lto?.verificado_em ?? "-"}`);
+
+      if (!itens.length) {
+        preencherVazio(tbody, 4, "Nenhum backup LTO encontrado.");
+        return;
+      }
+
+      itens.forEach(item => {
+        const linha = document.createElement("tr");
+        const servidor = document.createElement("td");
+        const job = document.createElement("td");
+        const metodo = document.createElement("td");
+        const status = document.createElement("td");
+        servidor.textContent = item.SERVIDOR ?? "-";
+        job.innerHTML = `<div class="table-name"><strong>${item.JOB_NAME ?? "-"}</strong><span>${item.MOTIVO ?? ""}</span></div>`;
+        metodo.textContent = item.METODO ?? "-";
+        status.appendChild(miniStatus(item.STATUS, item.RAW_STATUS));
+        linha.append(servidor, job, metodo, status);
+        tbody.appendChild(linha);
+      });
+    }
+
+    function renderizarCloud(ultimo) {
+      const tbody = document.getElementById("tabela-cloud");
+      const itens = Array.isArray(ultimo.backup_cloud?.itens) ? ultimo.backup_cloud.itens : [];
+      tbody.replaceChildren();
+
+      if (!itens.length) {
+        preencherVazio(tbody, 4, "Nenhum backup cloud encontrado.");
+        return;
+      }
+
+      itens.forEach(item => {
+        const linha = document.createElement("tr");
+        const servidor = document.createElement("td");
+        const plano = document.createElement("td");
+        const inicio = document.createElement("td");
+        const status = document.createElement("td");
+        servidor.textContent = item.servidor ?? "-";
+        plano.innerHTML = `<div class="table-name"><strong>${item.plano ?? "-"}</strong><span>${item.data ?? "-"}</span></div>`;
+        inicio.textContent = `${item.inicio ?? "-"} · ${item.duracao ?? "-"}`;
+        status.appendChild(miniStatus(item.status, item.status));
+        linha.append(servidor, plano, inicio, status);
+        tbody.appendChild(linha);
+      });
+    }
+
+    function renderizarTs(ultimo) {
+      const tbody = document.getElementById("tabela-ts");
+      const itens = Array.isArray(ultimo.usuarios_ts?.itens) ? ultimo.usuarios_ts.itens : [];
+      tbody.replaceChildren();
+
+      if (ultimo.usuarios_ts?.status === "FALHA") {
+        preencherVazio(tbody, 4, "Falha ao consultar usuários TS.");
+        return;
+      }
+
+      if (!itens.length) {
+        preencherVazio(tbody, 4, "Nenhum usuário logado no momento.");
+        return;
+      }
+
+      itens.forEach(item => {
+        const linha = document.createElement("tr");
+        const usuario = document.createElement("td");
+        const login = document.createElement("td");
+        const tempo = document.createElement("td");
+        const estado = document.createElement("td");
+        usuario.textContent = item.usuario ?? "-";
+        login.textContent = item.data_login ?? "-";
+        tempo.textContent = item.tempo ?? "-";
+        estado.appendChild(miniStatus(item.estado, item.estado));
+        linha.append(usuario, login, tempo, estado);
+        tbody.appendChild(linha);
+      });
+    }
+
+    function renderizarKaspersky(ultimo) {
+      const lista = document.getElementById("detalhes-kaspersky");
+      const dados = ultimo.kaspersky || {};
+      lista.replaceChildren();
+      texto("kaspersky-legenda", `Data do relatório: ${dados.horario_email ?? "-"}`);
+
+      [
+        {
+          categoria: "Status da proteção",
+          itens: [
+            ["Crítico", dados.status_protecao?.critico],
+            ["Advertência", dados.status_protecao?.advertencia],
+            ["OK", dados.status_protecao?.ok]
+          ]
+        },
+        {
+          categoria: "Ameaças",
+          itens: [
+            ["Dispositivos infectados", dados.ameacas?.infectados],
+            ["Arquivos diferentes", dados.ameacas?.arquivos],
+            ["Objetos diferentes", dados.ameacas?.objetos]
+          ]
+        },
+        {
+          categoria: "Ataques à rede",
+          itens: [
+            ["Total de ataques", dados.ataques_rede?.total],
+            ["Dispositivos atacados", dados.ataques_rede?.dispositivos],
+            ["Anexos", Array.isArray(dados.attachments) ? dados.attachments.length : 0]
+          ]
+        }
+      ].forEach(grupo => {
+        const linha = document.createElement("div");
+        const categoria = document.createElement("div");
+        linha.className = "report-row";
+        categoria.className = "report-category";
+        categoria.textContent = grupo.categoria;
+        linha.appendChild(categoria);
+
+        grupo.itens.forEach(([rotulo, valor]) => {
+          const celula = document.createElement("div");
+          const label = document.createElement("div");
+          const value = document.createElement("div");
+          celula.className = "report-item";
+          label.className = "report-label";
+          value.className = "report-value";
+          label.textContent = rotulo;
+          value.textContent = valor ?? "-";
+          celula.append(label, value);
+          linha.appendChild(celula);
+        });
+
+        lista.appendChild(linha);
+      });
+    }
+
+    function renderizarHistorico(registros) {
+      const tbody = document.getElementById("tabela-historico");
+      tbody.replaceChildren();
+      texto("total-coletas", `${registros.length} coleta(s)`);
+
+      if (!registros.length) {
+        preencherVazio(tbody, 6, "Nenhum histórico encontrado.");
+        return;
+      }
+
+      [...registros].reverse().forEach(item => {
+        const linha = document.createElement("tr");
+        const valores = [
+          item.data_hora ?? formatarData(item._data),
+          item.indicadores?.total_alertas ?? "-",
+          item.resumo?.erp_status ?? "-",
+          item.resumo?.qlik_status ?? "-",
+          item.resumo?.cloud_status ?? "-",
+          item.status_geral ?? "-"
+        ];
+        valores.forEach((valor, indice) => {
+          const td = document.createElement("td");
+          if (indice === valores.length - 1) {
+            td.appendChild(miniStatus(valor, valor));
+          } else {
+            td.textContent = valor;
+          }
+          linha.appendChild(td);
+        });
+        tbody.appendChild(linha);
+      });
+    }
+
+    function renderizarDashboard(dados) {
+      const registros = registrosDoPayload(dados);
+      if (!registros.length) {
+        mostrarErro("O JSON não contém histórico de coletas.");
+        return;
+      }
+
+      const ultimo = registros[registros.length - 1];
+      const indicadores = ultimo.indicadores || {};
+      const resumo = ultimo.resumo || {};
+      const erpTotal = inteiro(indicadores.erp_slaves_total);
+      const erpInativos = inteiro(indicadores.erp_slaves_inativos);
+      const erpAtivos = Math.max(0, erpTotal - erpInativos);
+
+      ocultarErro();
+      texto("titulo-local", ultimo.local ?? "Sistemas");
+      texto("ultima-coleta", ultimo.data_hora ?? formatarData(ultimo._data));
+      texto("status-principal", ultimo.status_geral ?? "-");
+      definirStatus("status-geral", ultimo.status_geral ?? "-", ultimo.status_geral);
+      texto("resumo-erp-lumini", statusErp(ultimo.erp?.lumini));
+      texto("resumo-erp-euroluce", statusErp(ultimo.erp?.euroluce));
+      texto("resumo-qlik", resumo.qlik_status);
+      texto("resumo-cloud", resumo.cloud_status);
+      texto("resumo-kaspersky", resumo.kaspersky_status);
+      texto("kpi-alertas", inteiro(indicadores.total_alertas));
+      texto("kpi-alertas-legenda", ultimo.status_geral === "OK" ? "Sem criticidade na última coleta" : "Exige conferência operacional");
+      texto("kpi-erp", `${erpAtivos}/${erpTotal}`);
+      texto("kpi-ts", ultimo.usuarios_ts?.total ?? "-");
+      texto("kpi-lto", `${inteiro(indicadores.backup_lto_sucesso)}/${inteiro(indicadores.backup_lto_total)}`);
+      texto("kpi-cloud", inteiro(indicadores.backup_cloud_alertas));
+
+      renderizarErp(ultimo);
+      renderizarQlik(ultimo);
+      renderizarLto(ultimo);
+      renderizarCloud(ultimo);
+      renderizarTs(ultimo);
+      renderizarKaspersky(ultimo);
+      renderizarHistorico(registros);
+    }
+
+    function montarUrlStatus(parametros = {}) {
+      const url = new URL(urlStatus);
+      Object.entries(parametros).forEach(([chave, valor]) => {
+        if (valor !== undefined && valor !== null && valor !== "") url.searchParams.set(chave, valor);
+      });
+      url.searchParams.set("folderId", driveFolderId);
+      url.searchParams.set("prefix", jsonPrefix);
+      url.searchParams.set("_", Date.now());
+      return url.toString();
+    }
+
+    function receberStatus(dados) {
+      try {
+        clearTimeout(timeoutCarregamento);
+        document.getElementById("jsonp-status")?.remove();
+        renderizarDashboard(dados);
+        texto("fonte-drive", `Pasta ${dados?.pasta_id ?? driveFolderId}`);
+
+        if (Array.isArray(dados?.erros) && dados.erros.length) {
+          mostrarErro(`${dados.erros.length} arquivo(s) da pasta não puderam ser lidos.`);
+        } else {
+          ocultarErro();
+        }
+      } catch (erro) {
+        mostrarErro(`Erro ao processar dados do Google Drive: ${erro.message}`);
+        definirStatus("status-geral", "Sem dados", "erro");
+      }
+    }
+
+    function receberArquivosDisponiveis(dados) {
+      try {
+        document.getElementById("jsonp-datas")?.remove();
+        const dataSelecionada = popularDatasDisponiveis(dados?.arquivos_processados || []);
+        texto("fonte-drive", `Pasta ${dados?.pasta_id ?? driveFolderId}`);
+
+        if (!dataSelecionada) {
+          mostrarErro("Nenhum arquivo diário de Sistemas foi encontrado na pasta do Google Drive.");
+          return;
+        }
+
+        carregarPorData();
+      } catch (erro) {
+        mostrarErro(`Erro ao listar datas disponíveis: ${erro.message}`);
+      }
+    }
+
+    function carregarDatasDisponiveis() {
+      document.getElementById("jsonp-datas")?.remove();
+      const script = document.createElement("script");
+      script.id = "jsonp-datas";
+      script.src = montarUrlStatus({ callback: "receberArquivosDisponiveis" });
+      script.onerror = () => {
+        mostrarErro("Não foi possível listar as datas disponíveis no Google Drive.");
+      };
+      document.head.appendChild(script);
+    }
+
+    function carregarPorData() {
+      const data = dataSelecionada;
+      if (!data) return;
+      const arquivo = dataParaArquivo(data);
+
+      clearTimeout(timeoutCarregamento);
+      document.getElementById("jsonp-status")?.remove();
+      ocultarErro();
+      definirStatus("status-geral", "Carregando", "normal");
+
+      const script = document.createElement("script");
+      script.id = "jsonp-status";
+      script.src = montarUrlStatus({ callback: "receberStatus", arquivo });
+      script.onerror = () => {
+        clearTimeout(timeoutCarregamento);
+        mostrarErro(`Não foi possível acessar o Apps Script para carregar ${arquivo}.`);
+        definirStatus("status-geral", "Sem dados", "erro");
+      };
+
+      timeoutCarregamento = setTimeout(() => {
+        script.remove();
+        mostrarErro(`Tempo limite excedido ao consultar o Apps Script para carregar ${arquivo}.`);
+        definirStatus("status-geral", "Sem dados", "erro");
+      }, 10000);
+
+      document.head.appendChild(script);
+    }
+
+    btnMesAnterior.addEventListener("click", () => {
+      mesVisivel = new Date(mesVisivel.getFullYear(), mesVisivel.getMonth() - 1, 1);
+      renderizarCalendario();
+    });
+
+    btnMesProximo.addEventListener("click", () => {
+      mesVisivel = new Date(mesVisivel.getFullYear(), mesVisivel.getMonth() + 1, 1);
+      renderizarCalendario();
+    });
+
+    carregarDatasDisponiveis();
+    setInterval(carregarPorData, 60000);
+  </script>
+</body>
+</html>
