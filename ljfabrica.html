@@ -606,6 +606,15 @@
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
 
+    .sonicwall-table th,
+    .sonicwall-table td {
+      white-space: normal;
+    }
+
+    .sonicwall-table .table-name strong {
+      white-space: nowrap;
+    }
+
     .table-wrap {
       overflow-x: auto;
     }
@@ -845,6 +854,34 @@
         </div>
         <div id="qualidade-lista" class="quality-list"></div>
       </aside>
+    </section>
+
+    <section class="grid split-grid">
+      <article class="card">
+        <div class="card-title-row">
+          <div>
+            <h2>SonicWall Failover / LB</h2>
+            <p id="sonicwall-legenda" class="caption">Status dos links WAN informado pelo firewall</p>
+          </div>
+          <span id="sonicwall-status" class="status-pill status-normal">-</span>
+        </div>
+        <div class="table-wrap">
+          <table class="sonicwall-table">
+            <thead>
+              <tr>
+                <th>Conexão</th>
+                <th>Membro</th>
+                <th>Link</th>
+                <th>LB</th>
+                <th>Principal</th>
+                <th>Ratio</th>
+                <th>Mbps</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-sonicwall"></tbody>
+          </table>
+        </div>
+      </article>
     </section>
 
     <section class="grid tables-grid">
@@ -1374,6 +1411,85 @@
       return "status-critico";
     }
 
+    function statusSonicwallClasse(valor) {
+      const textoStatus = String(valor ?? "").toLowerCase();
+      if (["up", "ok", "active", "available", "enabled", "online", "alive"].some(palavra => textoStatus.includes(palavra))) {
+        return "status-ok";
+      }
+      if (["down", "failed", "failure", "disabled", "inactive", "unavailable", "failover", "false", "no wan"].some(palavra => textoStatus.includes(palavra))) {
+        return "status-critico";
+      }
+      return "status-atencao";
+    }
+
+    function kbpsParaMbps(valor) {
+      const n = Number(String(valor ?? "0").replace(",", "."));
+      if (!Number.isFinite(n)) return "-";
+      return mbps(n / 1000);
+    }
+
+    function renderizarSonicwall(ultimo) {
+      const sonicwall = ultimo?.link?.sonicwall_failover || {};
+      const membros = Array.isArray(sonicwall.membros) ? sonicwall.membros : [];
+      const tbody = document.getElementById("tabela-sonicwall");
+      tbody.replaceChildren();
+      definirStatus("sonicwall-status", sonicwall.status ?? "Sem dados", sonicwall.status);
+      texto("sonicwall-legenda", membros.length
+        ? `${membros.length} link(s) monitorado(s) · coleta ${sonicwall.coletado_em ?? ultimo?.data_hora ?? "-"}`
+        : (sonicwall.mensagem || "Nenhum dado de SonicWall encontrado no JSON."));
+
+      if (!membros.length) {
+        const linha = document.createElement("tr");
+        const coluna = document.createElement("td");
+        coluna.colSpan = 7;
+        coluna.className = "muted";
+        coluna.textContent = sonicwall.mensagem || "Nenhum membro de Failover/LB encontrado no JSON.";
+        linha.appendChild(coluna);
+        tbody.appendChild(linha);
+        return;
+      }
+
+      membros.forEach(membro => {
+        const linha = document.createElement("tr");
+        const conexaoTd = document.createElement("td");
+        const conexaoWrap = document.createElement("div");
+        const conexao = document.createElement("strong");
+        const grupo = document.createElement("span");
+        const membroTd = document.createElement("td");
+        const linkTd = document.createElement("td");
+        const lbTd = document.createElement("td");
+        const principalTd = document.createElement("td");
+        const ratioTd = document.createElement("td");
+        const mbpsTd = document.createElement("td");
+        const linkStatus = document.createElement("span");
+        const lbStatus = document.createElement("span");
+        const principalStatus = document.createElement("span");
+
+        conexaoWrap.className = "table-name";
+        conexaoWrap.style.display = "block";
+        conexao.textContent = membro.conexao || membro.comentario || "-";
+        grupo.textContent = membro.grupo || "-";
+        conexaoWrap.append(conexao, grupo);
+        conexaoTd.appendChild(conexaoWrap);
+
+        membroTd.textContent = membro.membro ?? "-";
+        linkStatus.className = `mini-status ${statusSonicwallClasse(membro.link)}`;
+        linkStatus.textContent = membro.link ?? "-";
+        lbStatus.className = `mini-status ${statusSonicwallClasse(membro.lb)}`;
+        lbStatus.textContent = membro.lb ?? "-";
+        principalStatus.className = `mini-status ${statusSonicwallClasse(membro.principal)}`;
+        principalStatus.textContent = membro.principal ?? "-";
+        ratioTd.textContent = membro.ratio ?? "-";
+        mbpsTd.textContent = kbpsParaMbps(membro.kbps);
+
+        linkTd.appendChild(linkStatus);
+        lbTd.appendChild(lbStatus);
+        principalTd.appendChild(principalStatus);
+        linha.append(conexaoTd, membroTd, linkTd, lbTd, principalTd, ratioTd, mbpsTd);
+        tbody.appendChild(linha);
+      });
+    }
+
     function renderizarImpressoras(ultimo) {
       const tbody = document.getElementById("tabela-impressoras");
       const impressoras = Array.isArray(ultimo?.impressoras?.itens) ? ultimo.impressoras.itens : [];
@@ -1472,6 +1588,7 @@
       adicionarDetalhe("Score SLA", porcentagem(score));
 
       renderizarGrafico(registros, ultimo);
+      renderizarSonicwall(ultimo);
       renderizarAps(ultimo);
       renderizarImpressoras(ultimo);
     }
